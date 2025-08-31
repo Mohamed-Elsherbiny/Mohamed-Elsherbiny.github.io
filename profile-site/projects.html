@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Projects — Mohamed Elsherbiny</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="container nav-container">
+      <a class="brand" href="index.html">M. Elsherbiny</a>
+      <a class="link" href="index.html">← Home</a>
+    </div>
+  </nav>
+
+  <main class="container" style="padding-top:2rem">
+    <div class="profile-card" style="margin-bottom:1rem">
+      <h1>Selected Projects</h1>
+      <p class="muted">Highlights from academic and hobby projects.</p>
+    </div>
+
+    <section class="card">
+      <h3>Localization Mission Coordination on ROS and Gazebo environment</h3>
+      <p class="meta">Dec 2020 — Jan 2021</p>
+      <p>Implemented a geometric method to localize 8 flags position using 3 robots in an unknown environment using Python and ROS. The solution coordinates agents, processes sensor observations, and computes flag positions robustly in the presence of noise.</p>
+      <p><a href="#">See project</a></p>
+    </section>
+
+    <section class="card">
+      <h3>Visual-Inertial Odometry for Agent’s Motion</h3>
+      <p class="meta">Nov 2020 — Jan 2021</p>
+      <ul>
+        <li>Implemented the Structure-from-Motion (SfM) algorithm on camera frames pipeline to obtain scaled pose.</li>
+        <li>Implemented quaternion integration algorithm for IMU (gyroscope) readings to obtain Euler angles and fuse orientation with visual estimates.</li>
+      </ul>
+      <p><a href="#">See project</a></p>
+    </section>
+
+    <section class="card">
+      <h3>Autonomous UAV for Medical Rescue Applications</h3>
+      <p class="meta">Sep 2019 — Jul 2020</p>
+      <p>This project is the first prototype of a quad-plane designed and manufactured at Cairo University. The target of the project was to design, manufacture and implement an autonomous quad-plane to be used in medical rescue applications.</p>
+      <p>The vehicle is composed of multiple systems divided into modules: air-frame design and manufacturing, control system design and implementation, and path planning & image processing. My role focused on control design, system integration and autonomous behaviors.</p>
+    </section>
+
+    <section class="card">
+      <h3>ARLISS Rover</h3>
+      <p class="meta">Aug 2018 — Oct 2019</p>
+      <p>Drove the mathematical model for the vehicle, simulated rover movement using MATLAB & Simulink, and designed a controller for heading based on simulation and test data from the vehicle.</p>
+    </section>
+
+    <section class="card">
+      <h3>CanSat</h3>
+      <p class="meta">Jan 2019 — Apr 2019</p>
+      <ul>
+        <li>Designed and implemented a nanosatellite using SolidWorks and Arduino.</li>
+        <li>Built a ground station using LabView to receive telemetry and send commands.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>Flight Simulation of the DHC2 Aircraft</h3>
+      <p class="meta">Apr 2018 — May 2018</p>
+      <p>Real-time flight simulation with Simulink and MATLAB for solving the equations of motion. This was a group project for AER307A Flight Mechanics at Cairo University.</p>
+    </section>
+
+    <section class="card">
+      <h3>Solar Electric Vehicle - CUT</h3>
+      <p class="meta">2018 — 2019</p>
+      <p>Control & Embedded Systems Team Member: programmed vehicle microcontrollers (AT90CAN) communicating over CAN bus and contributed to vehicle electronics and control.</p>
+    </section>
+
+    <section class="card">
+      <h3>2nd Year Undergraduate Mathematics Research Forum</h3>
+      <p class="meta">Attitude Determination and Control Systems</p>
+      <ul>
+        <li>Conducted literature review on attitude determination and control systems for small satellites.</li>
+        <li>Presented results in a research report and poster format.</li>
+        <li>Implemented a Kalman Filter on a virtual system using MATLAB and on a real system (MPU6050 gyro) using Arduino and LabView.</li>
+      </ul>
+    </section>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year">2025</span> Mohamed Elsherbiny</p>
+      </div>
+    </footer>
+
+    <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+  </main>
+</body>
+</html>
