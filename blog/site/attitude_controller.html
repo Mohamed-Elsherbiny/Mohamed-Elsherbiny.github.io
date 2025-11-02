@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Altitude + Attitude Drone Controller</title>
+  <style>
+    body { font-family: system-ui, Arial; max-width: 900px; margin: 2rem auto; padding: 1rem; color: #0f1724; line-height: 1.6; }
+    .header { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 2rem; border-radius: 8px; margin-bottom: 2rem; }
+    .code-block { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 1.5rem; margin: 1rem 0; overflow-x: auto; }
+    .code-block pre { margin: 0; font-family: 'Monaco', 'Consolas', monospace; font-size: 0.9em; line-height: 1.4; }
+    .section { margin: 2rem 0; }
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin: 1rem 0; }
+    .feature { background: #f0f9ff; padding: 1rem; border-radius: 6px; border-left: 4px solid #3b82f6; }
+    .requirements { background: #fef3c7; padding: 1rem; border-radius: 6px; border-left: 4px solid #f59e0b; margin: 1rem 0; }
+    .note { background: #ecfdf5; padding: 1rem; border-radius: 6px; border-left: 4px solid #10b981; margin: 1rem 0; }
+    .warning { background: #fef2f2; padding: 1rem; border-radius: 6px; border-left: 4px solid #ef4444; margin: 1rem 0; }
+    .control-diagram { background: #f8fafc; padding: 1.5rem; border-radius: 8px; margin: 1rem 0; text-align: center; }
+    h1, h2, h3 { color: #1f2937; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .math { font-family: 'Times New Roman', serif; font-style: italic; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🚁 Altitude + Attitude Drone Controller</h1>
+    <p><strong>Advanced Educational Example</strong> — Multi-loop PID control for full 6-DOF drone stabilization</p>
+    <p><em>Author: Mohamed Elsherbiny</em></p>
+  </div>
+
+  <div class="section">
+    <h2>Overview</h2>
+    <p>This advanced example demonstrates <strong>multi-loop PID control</strong> combining altitude regulation with attitude stabilization. It showcases how modern drone flight controllers manage multiple degrees of freedom simultaneously using cascaded control loops.</p>
+    
+    <div class="features">
+      <div class="feature">
+        <strong>📡 Multi-Sensor Fusion</strong><br>
+        IMU, Gyroscope, and GPS integration
+      </div>
+      <div class="feature">
+        <strong>🔄 Cascaded Control</strong><br>
+        Separate loops for altitude and attitude
+      </div>
+      <div class="feature">
+        <strong>📊 Dual Plotting</strong><br>
+        Real-time altitude and attitude visualization
+      </div>
+      <div class="feature">
+        <strong>⚖️ Motor Mixing</strong><br>
+        Differential thrust for 6-DOF control
+      </div>
+    </div>
+
+    <div class="requirements">
+      <strong>🔧 Requirements:</strong>
+      <ul>
+        <li>Webots simulation environment</li>
+        <li>Python 3.x with matplotlib</li>
+        <li>Mavic 2 PRO robot model</li>
+        <li>Understanding of <a href="altitude_controller.html">basic altitude control</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Control Architecture</h2>
+    <div class="control-diagram">
+      <strong>Multi-Loop Control Structure</strong><br><br>
+      <div class="math">
+        Reference → [Altitude PD] → Thrust Command<br>
+        ↓<br>
+        IMU/Gyro → [Attitude PD] → Roll/Pitch/Yaw Corrections<br>
+        ↓<br>
+        [Motor Mixer] → Individual Motor Commands
+      </div>
+    </div>
+    
+    <h3>Control Loops:</h3>
+    <ul>
+      <li><strong>Altitude Loop:</strong> GPS-based vertical position control</li>
+      <li><strong>Roll/Pitch Loops:</strong> IMU-based orientation stabilization</li>
+      <li><strong>Yaw Loop:</strong> Gyro-based anti-spin damping</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Key Concepts Demonstrated</h2>
+    <ul>
+      <li><strong>Cascaded Control:</strong> Multiple independent but coordinated control loops</li>
+      <li><strong>Sensor Fusion:</strong> Combining IMU, gyroscope, and GPS data</li>
+      <li><strong>Motor Mixing:</strong> Converting control commands to individual motor thrust</li>
+      <li><strong>Attitude Representation:</strong> Roll, pitch, yaw (Euler angles)</li>
+      <li><strong>Rate Feedback:</strong> Using angular velocities for damping</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Complete Source Code</h2>
+    
+    <div class="warning">
+      <strong>⚠️ Advanced Example:</strong> This controller is more complex than the altitude-only version. Make sure you understand basic PID control before studying this implementation.
+    </div>
+
+    <div class="code-block">
+      <pre><code>"""
+=====================================================================
+ ALTITUDE + ATTITUDE DRONE CONTROLLER — EDUCATIONAL VERSION
+=====================================================================
+Author : Mohamed Elsherbiny
+Purpose: Demonstrate PD feedback control for both altitude and attitude.
+Robot  : Mavic 2 PRO (Webots)
+Sensors: IMU, Gyroscope, GPS
+Actuators: 4 propellers in velocity mode
+Visualization: Live Matplotlib plots (no files saved)
+=====================================================================
+"""
+
+# ----------------------------------------------------------
+# 1️⃣ Imports
+# ----------------------------------------------------------
+from controller import Robot
+import math
+import matplotlib
+matplotlib.use("TkAgg")        # GUI backend for live plots
+import matplotlib.pyplot as plt
+
+
+# ----------------------------------------------------------
+# 2️⃣ Helper function
+# ----------------------------------------------------------
+def clamp(value, lo, hi):
+    """Keep 'value' within [lo, hi] to avoid unsafe motor commands."""
+    return max(lo, min(hi, value))
+
+
+# ----------------------------------------------------------
+# 3️⃣ Robot setup and device initialization
+# ----------------------------------------------------------
+robot = Robot()
+dt = int(robot.getBasicTimeStep())  # simulation time step in ms
+
+# --- Sensors ---
+imu  = robot.getDevice("inertial unit"); imu.enable(dt)
+gyro = robot.getDevice("gyro");         gyro.enable(dt)
+gps  = robot.getDevice("gps");          gps.enable(dt)
+
+# --- Motors ---
+mFL = robot.getDevice("front left propeller")
+mFR = robot.getDevice("front right propeller")
+mRL = robot.getDevice("rear left propeller")
+mRR = robot.getDevice("rear right propeller")
+
+# Set all propellers to velocity control mode
+for m in (mFL, mFR, mRL, mRR):
+    m.setPosition(float('inf'))
+    m.setVelocity(0.0)
+
+
+# ----------------------------------------------------------
+# 4️⃣ Control parameters
+# ----------------------------------------------------------
+# --- Base thrust & altitude loop ---
+T0 = 68.5            # approximate hover thrust (depends on model weight)
+target_alt = 2.0     # desired altitude [m]
+Kp_z, Kd_z = 2.0, 0  # altitude PD gains
+z_error_prev = 0.0   # for derivative term
+
+# --- Attitude (roll/pitch/yaw) loops ---
+Kp_phi, Kd_phi = 40.0, 1.0   # roll
+Kp_the, Kd_the = 30.0, 1.0   # pitch
+Kd_psi         = 0.4         # yaw-rate damping only
+
+"""
+Explanation:
+- Kp_z controls how fast altitude errors are corrected.
+- Kd_z adds damping (set to 0 here for demonstration).
+- Roll (phi) and pitch (theta) PDs stabilize orientation.
+- Yaw control uses only D (rate) feedback to prevent spinning.
+"""
+
+
+# ----------------------------------------------------------
+# 5️⃣ Live plotting setup
+# ----------------------------------------------------------
+plt.ion()
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
+
+# --- Altitude plot ---
+ax1.set_title("Altitude Control")
+ax1.set_ylabel("z [m]")
+(line_z,)     = ax1.plot([], [], label="Altitude (measured)")
+(line_z_ref,) = ax1.plot([], [], "r--", label="Target")
+ax1.legend(); ax1.grid(True)
+
+# --- Attitude plot ---
+ax2.set_title("Attitude Angles")
+ax2.set_xlabel("time [s]")
+ax2.set_ylabel("Angle [deg]")
+(line_roll,)  = ax2.plot([], [], label="Roll")
+(line_pitch,) = ax2.plot([], [], label="Pitch")
+(line_yaw,)   = ax2.plot([], [], label="Yaw")
+ax2.legend(); ax2.grid(True)
+
+# Data buffers
+t_buf, z_buf, z_ref_buf = [], [], []
+roll_buf, pitch_buf, yaw_buf = [], [], []
+
+
+# ----------------------------------------------------------
+# 6️⃣ Main control loop
+# ----------------------------------------------------------
+print("🚀 Running drone controller with altitude + attitude control...")
+
+while robot.step(dt) != -1:
+    # 6.1 Read sensors
+    t = robot.getTime()
+    roll, pitch, yaw = imu.getRollPitchYaw()  # orientation [rad]
+    p, q, r = gyro.getValues()                # angular rates [rad/s]
+    z = gps.getValues()[2]                    # altitude [m]
+
+    # 6.2 Altitude PD control
+    z_error = target_alt - z
+    dz_error = (z_error - z_error_prev) / (dt / 1000.0)
+    z_error_prev = z_error
+    u_z = Kp_z * z_error + Kd_z * dz_error
+    thrust = clamp(T0 + u_z, 0, 100)
+
+    # 6.3 Attitude PD control (roll, pitch) + yaw damping
+    u_phi   = Kp_phi * clamp(roll,  -1.0, 1.0) + Kd_phi * p
+    u_theta = Kp_the * clamp(pitch, -1.0, 1.0) + Kd_the * q
+    u_psi   = Kd_psi * r  # only damping, no yaw command
+
+    # 6.4 Mixer: combine altitude + attitude corrections
+    FL = thrust - u_phi + u_theta - u_psi
+    FR = thrust + u_phi + u_theta + u_psi
+    RL = thrust - u_phi - u_theta + u_psi
+    RR = thrust + u_phi - u_theta - u_psi
+
+    # 6.5 Apply to motors
+    # Signs may differ depending on propeller orientation in Webots.
+    mFL.setVelocity( FL)
+    mFR.setVelocity(-FR)
+    mRL.setVelocity(-RL)
+    mRR.setVelocity( RR)
+
+    # 6.6 Update data buffers for plotting
+    t_buf.append(t)
+    z_buf.append(z)
+    z_ref_buf.append(target_alt)
+    roll_buf.append(math.degrees(roll))
+    pitch_buf.append(math.degrees(pitch))
+    yaw_buf.append(math.degrees(yaw))
+
+    # 6.7 Refresh live plots
+    # --- Altitude ---
+    line_z.set_data(t_buf, z_buf)
+    line_z_ref.set_data(t_buf, z_ref_buf)
+    ax1.relim(); ax1.autoscale_view()
+
+    # --- Attitude ---
+    line_roll.set_data(t_buf, roll_buf)
+    line_pitch.set_data(t_buf, pitch_buf)
+    line_yaw.set_data(t_buf, yaw_buf)
+    ax2.relim(); ax2.autoscale_view()
+
+    plt.pause(0.001)
+
+print("✅ Simulation ended.")</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Motor Mixing Explained</h2>
+    <p>The motor mixing algorithm converts high-level control commands into individual motor thrust:</p>
+    <div class="control-diagram">
+      <strong>Motor Configuration (X-Configuration)</strong><br><br>
+      <code>
+        FL ← → FR<br>
+        ↖     ↗<br>
+        RL ← → RR
+      </code><br><br>
+      <strong>Mixing Equations:</strong><br>
+      <div class="math">
+        FL = thrust - roll + pitch - yaw<br>
+        FR = thrust + roll + pitch + yaw<br>
+        RL = thrust - roll - pitch + yaw<br>
+        RR = thrust + roll - pitch - yaw
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Tuning Guidelines</h2>
+    <div class="features">
+      <div class="feature">
+        <strong>Altitude Control</strong><br>
+        <code>Kp_z = 2.0</code>: Altitude response speed<br>
+        <code>Kd_z = 0.0</code>: Altitude damping
+      </div>
+      <div class="feature">
+        <strong>Roll Control</strong><br>
+        <code>Kp_phi = 40.0</code>: Roll stiffness<br>
+        <code>Kd_phi = 1.0</code>: Roll damping
+      </div>
+      <div class="feature">
+        <strong>Pitch Control</strong><br>
+        <code>Kp_the = 30.0</code>: Pitch stiffness<br>
+        <code>Kd_the = 1.0</code>: Pitch damping
+      </div>
+      <div class="feature">
+        <strong>Yaw Control</strong><br>
+        <code>Kd_psi = 0.4</code>: Anti-spin damping<br>
+        No proportional term (free yaw)
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>How to Use</h2>
+    <ol>
+      <li><strong>Prerequisites:</strong> Complete the <a href="altitude_controller.html">altitude-only example</a> first</li>
+      <li><strong>Setup:</strong> Same Webots setup as altitude controller</li>
+      <li><strong>Run:</strong> Select this controller and observe dual plots</li>
+      <li><strong>Experiment:</strong> Try disturbing the drone and watch attitude stabilization</li>
+      <li><strong>Tune:</strong> Adjust gains to see their effects on performance</li>
+    </ol>
+  </div>
+
+  <div class="note">
+    <strong>🎓 Learning Progression:</strong> This example builds upon the <a href="altitude_controller.html">altitude-only controller</a>. Understanding both examples provides a complete foundation for autonomous flight control systems.
+  </div>
+
+</body>
+</html>
