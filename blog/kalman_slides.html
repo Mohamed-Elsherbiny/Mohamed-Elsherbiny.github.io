@@ -275,21 +275,29 @@
         </div>
 
         <div class="theory-section">
-            <h3>🔄 The Two-Step Process</h3>
+            <h3>📊 Gaussian Distributions (Bell Curves)</h3>
+            <p>Each curve you see is a Gaussian (Normal) distribution:</p>
+            <div class="equation-display" id="gaussian-pdf"></div>
+            <p>Where:</p>
+            <ul style="font-size: 0.85rem;">
+                <li><strong>μ</strong> = mean (peak location, our best guess of position)</li>
+                <li><strong>σ²</strong> = variance (width of curve, our uncertainty)</li>
+                <li><strong>Height</strong> = probability density (how confident we are)</li>
+            </ul>
+            <p><strong>Wider curve = more uncertain, Narrower curve = more certain</strong></p>
+        </div>
+
+        <div class="theory-section">
+            <h3> The Two-Step Process</h3>
             <p><strong>1. Predict Step:</strong></p>
-            <div class="equation-display">
-                x̂⁻ = x̂ + velocity<br>
-                P⁻ = P + Q
-            </div>
+            <div class="equation-display" id="predict-equations"></div>
             <p>Use physics to predict where we'll be next. Uncertainty increases by Q (process noise).</p>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">This creates the <strong>blue curve</strong> - our prediction based on motion model.</p>
             
             <p><strong>2. Update Step:</strong></p>
-            <div class="equation-display">
-                K = P⁻ / (P⁻ + R)<br>
-                x̂ = x̂⁻ + K(z - x̂⁻)<br>
-                P = (1 - K)P⁻
-            </div>
+            <div class="equation-display" id="update-equations"></div>
             <p>Combine the prediction with the sensor measurement. The Kalman Gain (K) decides how much to trust each source.</p>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">The <strong>green curve</strong> is narrower than both red and blue - it has less uncertainty!</p>
         </div>
 
         <div class="theory-section">
@@ -322,7 +330,10 @@
 
         <div class="theory-section">
             <h3>📊 What You're Seeing</h3>
-            <p id="explanationText">The <strong>green curve</strong> is mathematically the product of multiplying two Gaussians (blue × red). It represents our optimal estimate by fusing uncertain information from multiple sources.</p>
+            <p>The <strong>green curve</strong> is mathematically the product of multiplying two Gaussians (blue × red):</p>
+            <div class="equation-display" id="gaussian-multiply"></div>
+            <p>This multiplication creates a <strong>narrower</strong> distribution - combining information reduces uncertainty!</p>
+            <p style="font-size: 0.85rem; margin-top: 8px;">The Kalman Filter is the optimal way to fuse uncertain information from multiple sources.</p>
         </div>
     </div>
 
@@ -770,8 +781,32 @@
             modeIndicator.innerText = manualMode ? 'Manual' : 'Auto';
         }
 
-        // --- Render MathJax Equation ---
+        // --- Render KaTeX Equations ---
         katex.render("K = \\frac{P_{pred}}{P_{pred} + R}", document.getElementById('equation-kg'));
+        
+        // Gaussian PDF
+        katex.render(
+            "\\mathcal{N}(x|\\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu)^2}{2\\sigma^2}}",
+            document.getElementById('gaussian-pdf')
+        );
+        
+        // Predict equations
+        katex.render(
+            "\\begin{aligned} \\hat{x}^- &= \\hat{x} + v \\cdot \\Delta t \\\\ P^- &= P + Q \\end{aligned}",
+            document.getElementById('predict-equations')
+        );
+        
+        // Update equations
+        katex.render(
+            "\\begin{aligned} K &= \\frac{P^-}{P^- + R} \\\\ \\hat{x} &= \\hat{x}^- + K(z - \\hat{x}^-) \\\\ P &= (1 - K)P^- \\end{aligned}",
+            document.getElementById('update-equations')
+        );
+        
+        // Gaussian multiplication
+        katex.render(
+            "\\mathcal{N}(\\mu_1, \\sigma_1^2) \\times \\mathcal{N}(\\mu_2, \\sigma_2^2) = \\mathcal{N}\\left(\\frac{\\sigma_2^2\\mu_1 + \\sigma_1^2\\mu_2}{\\sigma_1^2 + \\sigma_2^2}, \\frac{\\sigma_1^2\\sigma_2^2}{\\sigma_1^2 + \\sigma_2^2}\\right)",
+            document.getElementById('gaussian-multiply')
+        );
 
         // --- Event Listeners ---
         document.getElementById('btnPause').onclick = () => { 

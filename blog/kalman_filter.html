@@ -496,6 +496,18 @@
         Inspired by the introductory plots in the notebook, this chart shows a gliding object, its noisy GPS-like
         measurements, and the filtered estimate. Vary \(Q\) (model trust) and \(R\) (sensor trust).
       </p>
+      <p>
+        <strong>1D Kalman Filter Equations:</strong>
+      </p>
+      <div class="equation">
+        \(\text{Predict: } \hat{x}_k^- = \hat{x}_{k-1}^+, \quad P_k^- = P_{k-1}^+ + Q\)
+      </div>
+      <div class="equation">
+        \(\text{Update: } K_k = \frac{P_k^-}{P_k^- + R}, \quad \hat{x}_k^+ = \hat{x}_k^- + K_k(z_k - \hat{x}_k^-), \quad P_k^+ = (1-K_k)P_k^-\)
+      </div>
+      <p>
+        When \(Q \ll R\), the gain \(K_k \to 0\) (trust model). When \(R \ll Q\), \(K_k \to 1\) (trust measurement).
+      </p>
       <div id="gainPlot"></div>
       <div class="controls">
         <div class="control-card">
@@ -522,6 +534,20 @@
       <p>
         The notebook begins with a 2D tracker; here is a lightweight recreation. The robot moves with constant velocity
         plus gentle turns. Use the sliders to explore tuning \(\mathbf{Q}\) and \(\mathbf{R}\).
+      </p>
+      <p>
+        <strong>Constant Velocity Model:</strong>
+      </p>
+      <div class="equation">
+        \(\mathbf{F} = \begin{bmatrix}1 & \Delta t & 0 & 0\\ 0 & 1 & 0 & 0\\ 0 & 0 & 1 & \Delta t\\ 0 & 0 & 0 & 1\end{bmatrix}, \quad
+        \mathbf{H} = \begin{bmatrix}1 & 0 & 0 & 0\\ 0 & 0 & 1 & 0\end{bmatrix}\)
+      </div>
+      <div class="equation">
+        \(\mathbf{Q} = \sigma_a^2 \begin{bmatrix}\frac{\Delta t^4}{4} & \frac{\Delta t^3}{2} & 0 & 0\\ \frac{\Delta t^3}{2} & \Delta t^2 & 0 & 0\\ 0 & 0 & \frac{\Delta t^4}{4} & \frac{\Delta t^3}{2}\\ 0 & 0 & \frac{\Delta t^3}{2} & \Delta t^2\end{bmatrix}, \quad
+        \mathbf{R} = \begin{bmatrix}\sigma_m^2 & 0\\ 0 & \sigma_m^2\end{bmatrix}\)
+      </div>
+      <p>
+        State: \(\mathbf{x} = [x, \dot{x}, y, \dot{y}]^\top\). Process noise \(\mathbf{Q}\) models random acceleration.
       </p>
       <div id="robotPlot"></div>
       <div class="controls">
@@ -553,6 +579,21 @@
       <p>
         Later in the notebook we compare zero-, first-, and second-order trackers. This slide lets you toggle among those
         models for a 1D car that accelerates, coasts, then brakes.
+      </p>
+      <p>
+        <strong>Motion Model Equations:</strong>
+      </p>
+      <div class="equation">
+        \(\text{0th order (position): } \mathbf{F} = [1], \quad \mathbf{x} = [x]\)
+      </div>
+      <div class="equation">
+        \(\text{1st order (velocity): } \mathbf{F} = \begin{bmatrix}1 & \Delta t\\ 0 & 1\end{bmatrix}, \quad \mathbf{x} = [x, \dot{x}]^\top\)
+      </div>
+      <div class="equation">
+        \(\text{2nd order (acceleration): } \mathbf{F} = \begin{bmatrix}1 & \Delta t & \frac{\Delta t^2}{2}\\ 0 & 1 & \Delta t\\ 0 & 0 & 1\end{bmatrix}, \quad \mathbf{x} = [x, \dot{x}, \ddot{x}]^\top\)
+      </div>
+      <p>
+        Higher-order models capture dynamics better but require more careful tuning of \(\mathbf{Q}\).
       </p>
       <div class="controls">
         <div class="control-card">
@@ -601,6 +642,18 @@
         The EKF linearizes nonlinear functions. Drag the operating point \(x\) to watch the tangent line track the curve
         \(f(x) = x^2 - 2x\), mimicking the figure from <em>Extended Kalman Filters</em>.
       </p>
+      <p>
+        <strong>First-Order Taylor Expansion:</strong>
+      </p>
+      <div class="equation">
+        \(f(x) \approx f(x_0) + f'(x_0)(x - x_0)\)
+      </div>
+      <div class="equation">
+        \(\text{For } f(x) = x^2 - 2x: \quad f'(x) = 2x - 2\)
+      </div>
+      <p>
+        At operating point \(x_0\), the tangent line has slope \(f'(x_0) = 2x_0 - 2\). The EKF uses this linearization at each step.
+      </p>
       <div id="linearizationPlot"></div>
       <div class="controls">
         <div class="control-card">
@@ -620,8 +673,19 @@
       <div class="badge">Slide 18</div>
       <h2>Radar EKF - Part 1: States</h2>
       <p>
-        A ground radar tracks an aircraft with state \(\mathbf{x} = [x, \dot{x}, h]^\top\). The radar measures only slant range:
-        \(h(\mathbf{x}) = \sqrt{x^2 + h^2}\) with Jacobian \(\nabla h = \left[\frac{x}{\sqrt{x^2 + h^2}}, 0, \frac{h}{\sqrt{x^2 + h^2}}\right]\).
+        A ground radar tracks an aircraft with state \(\mathbf{x} = [x, \dot{x}, h]^\top\). The radar measures only slant range.
+      </p>
+      <p>
+        <strong>Nonlinear Measurement Model:</strong>
+      </p>
+      <div class="equation">
+        \(z_k = h(\mathbf{x}_k) + v_k = \sqrt{x_k^2 + h_k^2} + v_k, \quad v_k \sim \mathcal{N}(0, R)\)
+      </div>
+      <div class="equation">
+        \(\mathbf{H}_k = \nabla h = \begin{bmatrix}\frac{x}{\sqrt{x^2 + h^2}} & 0 & \frac{h}{\sqrt{x^2 + h^2}}\end{bmatrix}\)
+      </div>
+      <p>
+        The Jacobian \(\mathbf{H}_k\) is recomputed at each step using the predicted state \(\hat{\mathbf{x}}_k^-\).
       </p>
       <div class="controls" style="margin-bottom: 1.5rem;">
         <div class="control-card">
@@ -647,9 +711,14 @@
       <div class="badge">Slide 19</div>
       <h2>Radar EKF - Part 2: Measurements</h2>
       <p>
-        The EKF uses constant-velocity dynamics with process noise modeling random acceleration:
-        \(\mathbf{F} = \begin{bmatrix}1 & \Delta t & 0\\ 0 & 1 & 0\\ 0 & 0 & 1\end{bmatrix}\),
-        \(\mathbf{Q} = \sigma_a^2 \begin{bmatrix} \frac{1}{4} \Delta t^4 & \frac{1}{2} \Delta t^3 & 0\\ \frac{1}{2} \Delta t^3 & \Delta t^2 & 0\\ 0 & 0 & 0 \end{bmatrix}\).
+        <strong>Linear Process Model with Nonlinear Measurements:</strong>
+      </p>
+      <div class="equation">
+        \(\mathbf{F} = \begin{bmatrix}1 & \Delta t & 0\\ 0 & 1 & 0\\ 0 & 0 & 1\end{bmatrix}, \quad
+        \mathbf{Q} = \sigma_a^2 \begin{bmatrix} \frac{\Delta t^4}{4} & \frac{\Delta t^3}{2} & 0\\ \frac{\Delta t^3}{2} & \Delta t^2 & 0\\ 0 & 0 & 0 \end{bmatrix}\)
+      </div>
+      <p>
+        The process model is linear (constant velocity), but measurements are nonlinear (range = \(\sqrt{x^2 + h^2}\)).
       </p>
       <div id="radarPlotMeasurements"></div>
     </section>
@@ -660,6 +729,25 @@
       <p>
         The notebook’s second EKF example tracks a wheeled robot with steering inputs while a radar at the origin reports
         noisy range/bearing. Tune the noise terms to see the EKF follow curved motion.
+      </p>
+      <p>
+        <strong>Bicycle Model (Nonlinear Process):</strong>
+      </p>
+      <div class="equation">
+        \(\mathbf{x}_{k+1} = \begin{bmatrix}x_k + v\cos(\theta_k)\Delta t\\ y_k + v\sin(\theta_k)\Delta t\\ \theta_k + \frac{v}{L}\tan(\delta)\Delta t\end{bmatrix}\)
+      </div>
+      <div class="equation">
+        \(\mathbf{F}_k = \begin{bmatrix}1 & 0 & -v\sin(\theta_k)\Delta t\\ 0 & 1 & v\cos(\theta_k)\Delta t\\ 0 & 0 & 1\end{bmatrix}\)
+      </div>
+      <p>
+        <strong>Nonlinear Range-Bearing Measurements:</strong>
+      </p>
+      <div class="equation">
+        \(\mathbf{z}_k = \begin{bmatrix}\sqrt{x_k^2 + y_k^2}\\ \arctan2(y_k, x_k)\end{bmatrix} + \mathbf{v}_k, \quad
+        \mathbf{H}_k = \begin{bmatrix}\frac{x}{r} & \frac{y}{r} & 0\\ -\frac{y}{r^2} & \frac{x}{r^2} & 0\end{bmatrix}\)
+      </div>
+      <p>
+        Both process and measurement models are nonlinear, requiring Jacobians \(\mathbf{F}_k\) and \(\mathbf{H}_k\) at each step.
       </p>
       <div id="robotEkfPlot"></div>
       <div class="controls">
