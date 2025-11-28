@@ -1,0 +1,1907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kalman Filter Interactive Slides</title>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #050505;
+      color: #f5f5f5;
+    }
+
+    body {
+      margin: 0;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Sidebar Navigation */
+    nav {
+      background: #0a0a0a;
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      overflow-y: auto;
+      padding: 2rem 0;
+    }
+
+    nav h1 {
+      font-size: 1.25rem;
+      padding: 0 1.5rem;
+      margin: 0 0 1.5rem 0;
+      color: #3b82f6;
+    }
+
+    nav ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    nav li {
+      margin: 0;
+    }
+
+    nav a {
+      display: block;
+      padding: 0.75rem 1.5rem;
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      font-size: 0.9rem;
+      border-left: 3px solid transparent;
+      transition: all 0.2s;
+    }
+
+    nav a:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      border-left-color: #3b82f6;
+    }
+
+    nav a.active {
+      background: rgba(59, 130, 246, 0.15);
+      color: #3b82f6;
+      border-left-color: #3b82f6;
+      font-weight: 600;
+    }
+
+    /* Main Content Area */
+    main {
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+
+    .slide {
+      min-height: 100vh;
+      padding: 3rem clamp(2rem, 5vw, 6rem);
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 1.4rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .slide:target {
+      scroll-margin-top: 0;
+    }
+
+    h1, h2 {
+      margin: 0;
+      line-height: 1.1;
+    }
+
+    p, li, label {
+      font-size: 1.05rem;
+      line-height: 1.6;
+      max-width: 75ch;
+    }
+
+    ul {
+      padding-left: 1.5rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    table {
+      width: min(900px, 100%);
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      padding: 0.6rem 0.8rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      vertical-align: top;
+    }
+
+    th {
+      text-align: left;
+      font-weight: 600;
+    }
+
+    code {
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      font-size: 0.95rem;
+    }
+
+    .equation {
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 1rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      width: fit-content;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.2rem;
+      width: 100%;
+    }
+
+    .control-card {
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 1rem;
+      padding: 1rem 1.25rem;
+      background-color: rgba(0, 0, 0, 0.35);
+      box-shadow: 0 10px 45px rgba(0, 0, 0, 0.35);
+    }
+
+    input[type="range"], select {
+      width: 100%;
+    }
+
+    select {
+      padding: 0.4rem;
+      border-radius: 0.4rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.35);
+      color: inherit;
+    }
+
+    #gaussianPlot,
+    #gainPlot,
+    #robotPlot,
+    #orderPlot,
+    #linearizationPlot,
+    #radarPlot,
+    #robotEkfPlot {
+      width: 100%;
+      max-width: 940px;
+      height: 460px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.65);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      body {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+
+      nav {
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 1rem 0;
+        max-height: 50vh;
+      }
+
+      nav h1 {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+      }
+
+      nav a {
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+      }
+
+      .slide {
+        padding: 2rem 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>📚 Kalman Filter</h1>
+    <ul>
+      <li><a href="#notation" class="nav-link">Notation</a></li>
+      <li><a href="#weighted-norms">Weighted Norms</a></li>
+      <li><a href="#batch-cost">Batch Cost Function</a></li>
+      <li><a href="#batch-ls">Batch Least Squares</a></li>
+      <li><a href="#one-step-cost">One-Step Cost</a></li>
+      <li><a href="#split-update">Split Update</a></li>
+      <li><a href="#bell-theorem">Bell's Theorem</a></li>
+      <li><a href="#kf-update">KF Update Step</a></li>
+      <li><a href="#kf-prediction">KF Prediction</a></li>
+      <li><a href="#kf-algorithm">KF Algorithm</a></li>
+      <li><a href="#gaussian-playground">🎮 Gaussian Fusion</a></li>
+      <li><a href="#gain-playground">🎮 Kalman Gain</a></li>
+      <li><a href="#robot-tracker">🎮 1D Robot Tracker</a></li>
+      <li><a href="#model-order">Model Order</a></li>
+      <li><a href="#ekf-intro">Extended KF Intro</a></li>
+      <li><a href="#linearization">Linearization</a></li>
+      <li><a href="#radar-ekf-states">🎮 Radar EKF - States</a></li>
+      <li><a href="#radar-ekf-measurements">🎮 Radar EKF - Measurements</a></li>
+      <li><a href="#robot-ekf">🎮 2D Robot EKF</a></li>
+    </ul>
+  </nav>
+  
+  <main>
+
+    <section class="slide" id="notation">
+      <div class="badge">Slide 01</div>
+      <h2>Unified Notation</h2>
+      <p>The table mirrors the quick-reference frame of the LaTeX slides.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Meaning</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>\(\mathbf{x}_k\)</td>
+            <td>State vector</td>
+            <td>Holds position, velocity, etc.</td>
+          </tr>
+          <tr>
+            <td>\(\hat{\mathbf{x}}^-_k,\hat{\mathbf{x}}^+_k\)</td>
+            <td>Prior / posterior estimate</td>
+            <td>Before / after seeing \(\mathbf{y}_k\)</td>
+          </tr>
+          <tr>
+            <td>\(\mathbf{y}_k\), \(\mathbf{u}_k\)</td>
+            <td>Measurement, known input</td>
+            <td>Measured outputs and commands</td>
+          </tr>
+          <tr>
+            <td>\(\mathbf{w}_k,\mathbf{v}_k\)</td>
+            <td>Process / measurement noise</td>
+            <td>\(\mathcal{N}(\mathbf{0},\mathbf{Q}_k)\) and \(\mathcal{N}(\mathbf{0},\mathbf{R}_k)\)</td>
+          </tr>
+          <tr>
+            <td>\(\mathbf{A}_k,\mathbf{B}_k,\mathbf{C}_k,\mathbf{D}_k\)</td>
+            <td>State &amp; measurement matrices</td>
+            <td>Encode the linear dynamics and sensors</td>
+          </tr>
+          <tr>
+            <td>\(\mathbf{P}_k^\pm\)</td>
+            <td>Error covariance</td>
+            <td>Uncertainty before / after the update</td>
+          </tr>
+          <tr>
+            <td>\(\mathbf{K}_k\)</td>
+            <td>Kalman gain</td>
+            <td>How much we trust the newest measurement</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="slide" id="weighted-norms">
+      <div class="badge">Slide 03</div>
+      <h2>Weighted Norms &amp; Gaussians</h2>
+      <p>
+        Beamer’s “Weighted Norms and Gaussians” slide links least squares to probabilistic thinking:
+        \[
+          \|\mathbf{e}\|^2_{\mathbf{M}} = \mathbf{e}^\top \mathbf{M} \mathbf{e}, \quad \mathbf{M} \succ 0.
+        \]
+      </p>
+      <p>
+        Minimizing a quadratic cost is equivalent to maximizing a Gaussian likelihood. Whenever we write
+        \(\mathbf{x} \sim \mathcal{N}(\hat{\mathbf{x}}, \mathbf{P})\), the density is proportional to
+        \(\exp \left(-\tfrac{1}{2}\| \mathbf{x} - \hat{\mathbf{x}} \|^2_{\mathbf{P}^{-1}} \right)\).
+      </p>
+      <p>
+        This dual viewpoint (LS vs probability) underpins every KF derivation: priors and measurement models are just
+        weighted quadratics glued together.
+      </p>
+    </section>
+
+    <section class="slide" id="batch-cost">
+      <div class="badge">Slide 04</div>
+      <h2>Batch Cost View</h2>
+      <p>
+        The LaTeX “Batch view” describes the cost of fitting an entire trajectory at once:
+        \[
+        \begin{aligned}
+        J_{\text{batch}} =& \sum_{k=0}^{N-2}
+          \|\mathbf{x}_{k+1} - \mathbf{A}_k \mathbf{x}_k - \mathbf{B}_k \mathbf{u}_k\|^2_{\mathbf{Q}_k^{-1}} \\
+        &+ \sum_{k=0}^{N-1}
+          \|\mathbf{y}_k - \mathbf{C}_k \mathbf{x}_k - \mathbf{D}_k \mathbf{u}_k\|^2_{\mathbf{R}_k^{-1}}.
+        \end{aligned}
+        \]
+      </p>
+      <p>
+        Minimizing this with respect to every state is equivalent to solving one huge weighted normal equation. Elegant,
+        but not online-friendly.
+      </p>
+    </section>
+
+    <section class="slide" id="batch-ls">
+      <div class="badge">Slide 05</div>
+      <h2>From Batch to Recursive Thinking</h2>
+      <p>
+        Stack all states into \(\mathbf{X}\) and the batch problem becomes \(\|\mathbf{F}\mathbf{X} - \mathbf{g}\|^2_{\mathbf{W}}\).
+        The Kalman filter avoids ever forming \(\mathbf{F}^\top \mathbf{W} \mathbf{F}\); instead it only keeps
+        \((\hat{\mathbf{x}}_k, \mathbf{P}_k)\) and revises them each time a fresh \(\mathbf{y}_k\) arrives.
+      </p>
+      <p>
+        Dynamic programming language (“Bell’s theorems”) captures this idea: solve a tiny quadratic at each step instead
+        of a massive one at the end.
+      </p>
+    </section>
+
+    <section class="slide" id="one-step-cost">
+      <div class="badge">Slide 06</div>
+      <h2>One-Step Cost Decomposition</h2>
+      <p>
+        At time \(k\), define local copies \(\zeta \approx \mathbf{x}_k\) and \(\xi \approx \mathbf{x}_{k+1}\). The one-step
+        cost from the LaTeX slide reads
+      </p>
+      <div class="equation">
+        \(V_k(\zeta,\xi) =
+        \|\zeta - \hat{\mathbf{x}}^-_k\|^2_{(\mathbf{P}^-_k)^{-1}}
+        + \|\xi - \mathbf{A}_k \zeta - \mathbf{B}_k \mathbf{u}_k\|^2_{\mathbf{Q}_k^{-1}}
+        + \|\mathbf{y}_k - \mathbf{C}_k \zeta - \mathbf{D}_k \mathbf{u}_k\|^2_{\mathbf{R}_k^{-1}}\).
+      </div>
+      <p>
+        The three terms encode “stay near the prior”, “respect dynamics”, and “fit the sensor”. That’s all a KF does.
+      </p>
+    </section>
+
+    <section class="slide" id="split-update">
+      <div class="badge">Slide 07</div>
+      <h2>Split into Update &amp; Prediction</h2>
+      <p>
+        The derivation splits the previous cost into two smaller ones:
+      </p>
+      <ul>
+        <li>Update: minimize \(V^{\text{upd}}_k(\zeta)\) to blend the prior with the measurement.</li>
+        <li>Prediction: minimize \(V^{\text{pred}}_k(\zeta,\xi)\) to roll the posterior forward.</li>
+      </ul>
+      <p>
+        Conceptually this is Bellman optimality for Gaussian quadratics—solve a tiny problem now, propagate its result,
+        repeat forever.
+      </p>
+    </section>
+
+    <section class="slide" id="bell-theorem">
+      <div class="badge">Slide 08</div>
+      <h2>Bell's Theorem 1 (Gaussian Fusion)</h2>
+      <p>
+        The slide deck spends three frames expanding this idea. The short version:
+      </p>
+      <div class="equation">
+        \(\hat{\zeta} = \mathbf{m}_1 +
+        \underbrace{\mathbf{P}^+ \mathbf{C}^\top \mathbf{R}^{-1}}_{\mathbf{K}}
+        (\mathbf{r} - \mathbf{C}\mathbf{m}_1),\quad
+        \mathbf{P}^+ = (\mathbf{P}_1^{-1} + \mathbf{C}^\top \mathbf{R}^{-1}\mathbf{C})^{-1}.\)
+      </div>
+      <p>
+        Translation: multiply a prior Gaussian by a measurement Gaussian and you get another Gaussian. The Kalman gain is
+        just the weight of that multiplication.
+      </p>
+    </section>
+
+    <section class="slide" id="kf-update">
+      <div class="badge">Slide 09</div>
+      <h2>KF Update via Bell's Theorem</h2>
+      <p>
+        Plugging the prior and measurement definitions into Bell’s theorem yields the textbook formulas:
+      </p>
+      <div class="equation">
+        \(\hat{\mathbf{x}}^+_k = \hat{\mathbf{x}}^-_k + \mathbf{K}_k
+          (\mathbf{y}_k - \mathbf{C}_k \hat{\mathbf{x}}^-_k - \mathbf{D}_k \mathbf{u}_k)\)
+      </div>
+      <div class="equation">
+        \(\mathbf{K}_k = \mathbf{P}^-_k \mathbf{C}_k^\top
+        (\mathbf{C}_k \mathbf{P}^-_k \mathbf{C}_k^\top + \mathbf{R}_k)^{-1}, \quad
+        \mathbf{P}^+_k = (\mathbf{I} - \mathbf{K}_k \mathbf{C}_k)\mathbf{P}^-_k.\)
+      </div>
+      <p>
+        The innovation \(\mathbf{e}_k = \mathbf{y}_k - \mathbf{C}_k \hat{\mathbf{x}}^-_k - \mathbf{D}_k \mathbf{u}_k\) is the
+        “surprise” we correct with.
+      </p>
+    </section>
+
+    <section class="slide" id="kf-prediction">
+      <div class="badge">Slide 10</div>
+      <h2>Bell's Theorem 2 → Prediction</h2>
+      <p>
+        Linear functions of Gaussians remain Gaussian. Apply this to the dynamics:
+      </p>
+      <div class="equation">
+        \(\hat{\mathbf{x}}^-_{k+1} = \mathbf{A}_k \hat{\mathbf{x}}^+_k + \mathbf{B}_k \mathbf{u}_k,\quad
+        \mathbf{P}^-_{k+1} = \mathbf{A}_k \mathbf{P}^+_k \mathbf{A}_k^\top + \mathbf{Q}_k.\)
+      </div>
+      <p>
+        Mean marches through the model, covariance balloons via \(\mathbf{Q}_k\).
+      </p>
+    </section>
+
+    <section class="slide" id="kf-algorithm">
+      <div class="badge">Slide 11</div>
+      <h2>Full Recursive Algorithm</h2>
+      <p>
+        The final LaTeX slide summarizes the loop:
+      </p>
+      <ol>
+        <li>Predict \((\hat{\mathbf{x}}^-_{k+1}, \mathbf{P}^-_{k+1})\).</li>
+        <li>Compute innovation covariance \(\mathbf{S}_{k+1}\) and Kalman gain \(\mathbf{K}_{k+1}\).</li>
+        <li>Update state, then shrink covariance via \((\mathbf{I} - \mathbf{K}_{k+1}\mathbf{C}_{k+1})\).</li>
+      </ol>
+      <p>
+        Everything else in the KF universe—smoothers, EKFs, UKFs—is just a riff on this loop.
+      </p>
+    </section>
+
+    <section class="slide" id="gaussian-playground">
+      <div class="badge">Slide 12</div>
+      <h2>Gaussian Fusion Playground</h2>
+      <p>
+        Before touching time series, combine a prediction and a measurement for a car’s distance from a wall. This is
+        exactly Bell’s theorem 1 in action.
+      </p>
+      <div id="gaussianPlot"></div>
+      <div class="controls">
+        <div class="control-card">
+          <label for="predictVar">Prediction variance \(P\): <strong><span id="predictVarLabel">0.40</span> m²</strong></label>
+          <input type="range" id="predictVar" min="0.05" max="4" step="0.05" value="0.4" />
+          <p>Large variance = vague motion prediction. Shrink it to “hug” the prior.</p>
+        </div>
+        <div class="control-card">
+          <label for="measureVar">Measurement variance \(R\): <strong><span id="measureVarLabel">0.60</span> m²</strong></label>
+          <input type="range" id="measureVar" min="0.05" max="4" step="0.05" value="0.6" />
+          <p>Small variance = very trustworthy range finder; large variance = noisy sensor.</p>
+        </div>
+        <div class="control-card">
+          <p><strong>Posterior</strong></p>
+          <p>Mean: <span id="posteriorMeanLabel">4.50</span> m</p>
+          <p>Variance: <span id="posteriorVarLabel">0.24</span> m²</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="gain-playground">
+      <div class="badge">Slide 13</div>
+      <h2>Kalman Gain Playground (1D motion)</h2>
+      <p>
+        Inspired by the introductory plots in the notebook, this chart shows a gliding object, its noisy GPS-like
+        measurements, and the filtered estimate. Vary \(Q\) (model trust) and \(R\) (sensor trust).
+      </p>
+      <div id="gainPlot"></div>
+      <div class="controls">
+        <div class="control-card">
+          <label for="processNoise">Process noise variance \(Q\): <strong><span id="processNoiseLabel">0.20</span></strong></label>
+          <input type="range" id="processNoise" min="0.01" max="4" step="0.01" value="0.2" />
+          <p>Crank it up to admit that your kinematics model drifts (e.g., uneven throttle).</p>
+        </div>
+        <div class="control-card">
+          <label for="measurementNoise">Measurement noise variance \(R\): <strong><span id="measurementNoiseLabel">0.80</span></strong></label>
+          <input type="range" id="measurementNoise" min="0.01" max="4" step="0.01" value="0.8" />
+          <p>Higher means the sensor is flaky; the filter leans on the prediction instead.</p>
+        </div>
+        <div class="control-card">
+          <p><strong>Latest gain</strong></p>
+          <p><span id="gainLabel">0.20</span></p>
+          <p>This is the \(K_k\) from the last sample—watch how it reacts to your sliders.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="robot-tracker">
+      <div class="badge">Slide 14</div>
+      <h2>Warehouse Robot Tracker (2D)</h2>
+      <p>
+        The notebook begins with a 2D tracker; here is a lightweight recreation. The robot moves with constant velocity
+        plus gentle turns. Use the sliders to explore tuning \(\mathbf{Q}\) and \(\mathbf{R}\).
+      </p>
+      <div id="robotPlot"></div>
+      <div class="controls">
+        <div class="control-card">
+          <label for="robotProcessNoise">Process noise std (model wobble): <strong><span id="robotProcessLabel">0.20</span> m/s²</strong></label>
+          <input type="range" id="robotProcessNoise" min="0.05" max="1.2" step="0.05" value="0.2" />
+          <p>Captures unmodeled accelerations. Higher makes the filter forgiving but noisier.</p>
+        </div>
+        <div class="control-card">
+          <label for="robotMeasurementNoise">Measurement noise std: <strong><span id="robotMeasurementLabel">0.60</span> m</strong></label>
+          <input type="range" id="robotMeasurementNoise" min="0.2" max="1.8" step="0.05" value="0.6" />
+          <p>Controls how scattered the GPS-like sensor is and how cautious \(R\) becomes.</p>
+        </div>
+        <div class="control-card">
+          <p><strong>RMSE (position)</strong></p>
+          <p>Measurements: <span id="robotMeasurementRmse">0.00</span> m</p>
+          <p>Filter: <span id="robotFilterRmse">0.00</span> m</p>
+        </div>
+      </div>
+      <p>
+        You can clearly see the “green covariance ellipse” story from the notebook: low \(R\) makes estimates chase the
+        orange points, low \(Q\) obeys the straight-line model even when reality bends.
+      </p>
+    </section>
+
+    <section class="slide" id="model-order">
+      <div class="badge">Slide 15</div>
+      <h2>Model Order Designer (0th/1st/2nd)</h2>
+      <p>
+        Later in the notebook we compare zero-, first-, and second-order trackers. This slide lets you toggle among those
+        models for a 1D car that accelerates, coasts, then brakes.
+      </p>
+      <div class="controls">
+        <div class="control-card">
+          <label for="modelOrderSelect">Choose motion model</label>
+          <select id="modelOrderSelect">
+            <option value="0">Zero order (position only)</option>
+            <option value="1" selected>First order (constant velocity)</option>
+            <option value="2">Second order (constant acceleration)</option>
+          </select>
+          <p>Higher order introduces velocity/acceleration states to soak up dynamics.</p>
+        </div>
+        <div class="control-card">
+          <p><strong>RMSE (position)</strong></p>
+          <p><span id="orderRmse">0.00</span> m</p>
+          <p>The notebook stresses tuning \(\mathbf{Q}\) for each order—here they are pre-tuned.</p>
+        </div>
+      </div>
+      <div id="orderPlot"></div>
+      <p>
+        Observe how a zero-order filter lags when the car accelerates, while a second-order filter anticipates the curve.
+        Toggle back and forth to feel the design trade-offs.
+      </p>
+    </section>
+
+    <section class="slide" id="ekf-intro">
+      <div class="badge">Slide 16</div>
+      <h2>Enter the Extended Kalman Filter</h2>
+      <p>
+        Chapter 11 in the notebook introduces the EKF. The recipe: linearize the nonlinear model at the current estimate,
+        then apply the linear Kalman filter equations to that local approximation. Two Jacobians appear:
+      </p>
+      <ul>
+        <li>\(\mathbf{F}_k = \partial f / \partial \mathbf{x}\): linearizes the process model.</li>
+        <li>\(\mathbf{H}_k = \partial h / \partial \mathbf{x}\): linearizes the measurement model.</li>
+      </ul>
+      <p>
+        The EKF examples—radar tracking and a steering robot—are embedded below with interactive linearization games so
+        you can “feel” how the Jacobians change with the operating point.
+      </p>
+    </section>
+
+    <section class="slide" id="linearization">
+      <div class="badge">Slide 17</div>
+      <h2>Linearization Playground</h2>
+      <p>
+        The EKF linearizes nonlinear functions. Drag the operating point \(x\) to watch the tangent line track the curve
+        \(f(x) = x^2 - 2x\), mimicking the figure from <em>Extended Kalman Filters</em>.
+      </p>
+      <div id="linearizationPlot"></div>
+      <div class="controls">
+        <div class="control-card">
+          <label for="linearizationPoint">Operating point \(x\): <strong><span id="linearizationPointLabel">1.50</span></strong></label>
+          <input type="range" id="linearizationPoint" min="-1" max="3" step="0.05" value="1.5" />
+          <p>EKFs recompute the slope at every step to keep the linear approximation trustworthy.</p>
+        </div>
+        <div class="control-card">
+          <p><strong>Tangent slope \(f'(x)\)</strong></p>
+          <p><span id="linearizationSlopeLabel">1.00</span></p>
+          <p>The Jacobian at \(x\) is literally the slope of this tangent line.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="radar-ekf-states">
+      <div class="badge">Slide 18</div>
+      <h2>Radar EKF - Part 1: States</h2>
+      <p>
+        A ground radar tracks an aircraft with state \(\mathbf{x} = [x, \dot{x}, h]^\top\). The radar measures only slant range:
+        \(h(\mathbf{x}) = \sqrt{x^2 + h^2}\) with Jacobian \(\nabla h = \left[\frac{x}{\sqrt{x^2 + h^2}}, 0, \frac{h}{\sqrt{x^2 + h^2}}\right]\).
+      </p>
+      <div class="controls" style="margin-bottom: 1.5rem;">
+        <div class="control-card">
+          <label for="radarProcessNoise">Process noise std: <strong><span id="radarProcessLabel">1.00</span> m/s²</strong></label>
+          <input type="range" id="radarProcessNoise" min="0.2" max="3" step="0.1" value="1" />
+          <p>Higher values assume more acceleration uncertainty.</p>
+        </div>
+        <div class="control-card">
+          <label for="radarMeasurementNoise">Range noise std: <strong><span id="radarMeasurementLabel">30.0</span> m</strong></label>
+          <input type="range" id="radarMeasurementNoise" min="5" max="80" step="1" value="30" />
+          <p>Simulates radar precision. Large noise forces the EKF to trust the dynamics.</p>
+        </div>
+        <div class="control-card">
+          <p><strong>Final Errors</strong></p>
+          <p><span id="radarHorizontalLabel">0.0</span></p>
+          <p>Errors converge as the EKF learns the true state from noisy range measurements.</p>
+        </div>
+      </div>
+      <div id="radarPlotStates"></div>
+    </section>
+
+    <section class="slide" id="radar-ekf-measurements">
+      <div class="badge">Slide 19</div>
+      <h2>Radar EKF - Part 2: Measurements</h2>
+      <p>
+        The EKF uses constant-velocity dynamics with process noise modeling random acceleration:
+        \(\mathbf{F} = \begin{bmatrix}1 & \Delta t & 0\\ 0 & 1 & 0\\ 0 & 0 & 1\end{bmatrix}\),
+        \(\mathbf{Q} = \sigma_a^2 \begin{bmatrix} \frac{1}{4} \Delta t^4 & \frac{1}{2} \Delta t^3 & 0\\ \frac{1}{2} \Delta t^3 & \Delta t^2 & 0\\ 0 & 0 & 0 \end{bmatrix}\).
+      </p>
+      <div id="radarPlotMeasurements"></div>
+    </section>
+
+    <section class="slide" id="robot-ekf">
+      <div class="badge">Slide 20</div>
+      <h2>Nonlinear Robot EKF (Range + Bearing)</h2>
+      <p>
+        The notebook’s second EKF example tracks a wheeled robot with steering inputs while a radar at the origin reports
+        noisy range/bearing. Tune the noise terms to see the EKF follow curved motion.
+      </p>
+      <div id="robotEkfPlot"></div>
+      <div class="controls">
+        <div class="control-card">
+          <label for="robotEkfProcessNoise">Process noise std: <strong><span id="robotEkfProcessLabel">0.20</span></strong></label>
+          <input type="range" id="robotEkfProcessNoise" min="0.05" max="0.8" step="0.05" value="0.2" />
+          <p>Represents steering/velocity uncertainty in the bicycle model.</p>
+        </div>
+        <div class="control-card">
+          <label for="robotEkfMeasurementNoise">Measurement noise (range m / bearing rad): <strong><span id="robotEkfMeasurementLabel">5 / 0.10</span></strong></label>
+          <input type="range" id="robotEkfMeasurementNoise" min="2" max="20" step="0.5" value="5" />
+          <p>Same slider governs radial noise (meters) and bearing noise (converted to radians).</p>
+        </div>
+        <div class="control-card">
+          <p><strong>RMSE (position)</strong></p>
+          <p><span id="robotEkfRmse">0.00</span> m</p>
+          <p>Notice how the EKF “unwraps” the nonlinear measurements into a smooth pose estimate.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  <footer>Sensor Fusion Course • Interactive Kalman Filter Slides</footer>
+
+  <script>
+    // ---------- Utility helpers ----------
+    function matMul(A, B) {
+      const rows = A.length;
+      const cols = B[0].length;
+      const inner = B.length;
+      const result = Array.from({ length: rows }, () => Array(cols).fill(0));
+      for (let i = 0; i < rows; i++) {
+        for (let k = 0; k < inner; k++) {
+          for (let j = 0; j < cols; j++) {
+            result[i][j] += A[i][k] * B[k][j];
+          }
+        }
+      }
+      return result;
+    }
+
+    function matAdd(A, B) {
+      return A.map((row, i) => row.map((val, j) => val + B[i][j]));
+    }
+
+    function matSub(A, B) {
+      return A.map((row, i) => row.map((val, j) => val - B[i][j]));
+    }
+
+    function matTranspose(A) {
+      return A[0].map((_, j) => A.map(row => row[j]));
+    }
+
+    function matVecMul(A, v) {
+      return A.map(row => row.reduce((sum, val, idx) => sum + val * v[idx], 0));
+    }
+
+    function vecAdd(a, b) {
+      return a.map((val, i) => val + b[i]);
+    }
+
+    function vecSub(a, b) {
+      return a.map((val, i) => val - b[i]);
+    }
+
+    function identity(size, scale = 1) {
+      return Array.from({ length: size }, (_, i) =>
+        Array.from({ length: size }, (_, j) => (i === j ? scale : 0))
+      );
+    }
+
+    function inv2x2(M) {
+      const [[a, b], [c, d]] = M;
+      const det = a * d - b * c;
+      const invDet = 1 / det;
+      return [
+        [d * invDet, -b * invDet],
+        [-c * invDet, a * invDet]
+      ];
+    }
+
+    function pseudoNoise(i, seed) {
+      const val = Math.sin(i * 12.9898 + seed * 78.233) * 43758.5453;
+      return val - Math.floor(val) - 0.5;
+    }
+
+    function rmse(trueSeries, estSeries) {
+      const sum = trueSeries.reduce((acc, val, i) => acc + Math.pow(val - estSeries[i], 2), 0);
+      return Math.sqrt(sum / trueSeries.length);
+    }
+
+    function rmse2D(trueSeries, estSeries) {
+      const sum = trueSeries.reduce((acc, point, i) => {
+        const dx = point.x - estSeries[i].x;
+        const dy = point.y - estSeries[i].y;
+        return acc + dx * dx + dy * dy;
+      }, 0);
+      return Math.sqrt(sum / trueSeries.length);
+    }
+
+    function wrapAngle(angle) {
+      let a = angle;
+      while (a > Math.PI) a -= 2 * Math.PI;
+      while (a < -Math.PI) a += 2 * Math.PI;
+      return a;
+    }
+
+    // ---------- Linearization playground ----------
+    const linearizationPlotElement = document.getElementById("linearizationPlot");
+    const linearizationInput = document.getElementById("linearizationPoint");
+    const linearizationPointLabel = document.getElementById("linearizationPointLabel");
+    const linearizationSlopeLabel = document.getElementById("linearizationSlopeLabel");
+    const linearizationAxis = Array.from({ length: 400 }, (_, i) => -2 + (6 * i) / 399);
+
+    function renderLinearizationPlot() {
+      if (!linearizationPlotElement) return;
+      const x0 = Number(linearizationInput.value);
+      const slope = 2 * x0 - 2;
+      const y0 = x0 * x0 - 2 * x0;
+      const tangent = linearizationAxis.map((x) => slope * (x - x0) + y0);
+
+      linearizationPointLabel.textContent = x0.toFixed(2);
+      linearizationSlopeLabel.textContent = slope.toFixed(2);
+
+      const traces = [
+        {
+          x: linearizationAxis,
+          y: linearizationAxis.map((x) => x * x - 2 * x),
+          mode: "lines",
+          name: "f(x) = x^2 - 2x",
+          line: { color: "#5B8FF9", width: 3 }
+        },
+        {
+          x: linearizationAxis,
+          y: tangent,
+          mode: "lines",
+          name: "Tangent",
+          line: { color: "#F6BD16", width: 3, dash: "dot" }
+        },
+        {
+          x: [x0],
+          y: [y0],
+          mode: "markers",
+          name: "Operating point",
+          marker: { color: "#5AD8A6", size: 10 }
+        }
+      ];
+
+      const layout = {
+        paper_bgcolor: "rgba(0,0,0,0)",
+        plot_bgcolor: "rgba(0,0,0,0)",
+        margin: { l: 50, r: 20, t: 30, b: 40 },
+        xaxis: { title: "x", gridcolor: "rgba(255,255,255,0.1)" },
+        yaxis: { title: "f(x)", gridcolor: "rgba(255,255,255,0.1)" },
+        legend: { orientation: "h", y: -0.2 },
+        font: { color: "#f5f5f5" }
+      };
+
+      Plotly.react(linearizationPlotElement, traces, layout, { responsive: true, displaylogo: false });
+    }
+
+    linearizationInput?.addEventListener("input", renderLinearizationPlot);
+
+    // ---------- Gaussian fusion ----------
+    const gaussianPlotElement = document.getElementById("gaussianPlot");
+    const predictVarInput = document.getElementById("predictVar");
+    const measureVarInput = document.getElementById("measureVar");
+    const predictVarLabel = document.getElementById("predictVarLabel");
+    const measureVarLabel = document.getElementById("measureVarLabel");
+    const posteriorMeanLabel = document.getElementById("posteriorMeanLabel");
+    const posteriorVarLabel = document.getElementById("posteriorVarLabel");
+
+    const priorMean = 5;
+    const measurementMean = 4.2;
+    const gaussianAxis = Array.from({ length: 400 }, (_, i) => 2 + i * (4 / 399));
+
+    function gaussian(x, mean, variance) {
+      const sigma = Math.sqrt(variance);
+      const norm = 1 / (sigma * Math.sqrt(2 * Math.PI));
+      return norm * Math.exp(-0.5 * Math.pow((x - mean) / sigma, 2));
+    }
+
+    function renderGaussianPlot() {
+      const pVar = Number(predictVarInput.value);
+      const mVar = Number(measureVarInput.value);
+      const fusedVar = 1 / (1 / pVar + 1 / mVar);
+      const fusedMean = fusedVar * (priorMean / pVar + measurementMean / mVar);
+
+      predictVarLabel.textContent = pVar.toFixed(2);
+      measureVarLabel.textContent = mVar.toFixed(2);
+      posteriorMeanLabel.textContent = fusedMean.toFixed(2);
+      posteriorVarLabel.textContent = fusedVar.toFixed(2);
+
+      const traces = [
+        {
+          x: gaussianAxis,
+          y: gaussianAxis.map((x) => gaussian(x, priorMean, pVar)),
+          mode: "lines",
+          name: "Prediction prior",
+          line: { color: "#5B8FF9", width: 3 }
+        },
+        {
+          x: gaussianAxis,
+          y: gaussianAxis.map((x) => gaussian(x, measurementMean, mVar)),
+          mode: "lines",
+          name: "Measurement likelihood",
+          line: { color: "#F6BD16", width: 3, dash: "dot" }
+        },
+        {
+          x: gaussianAxis,
+          y: gaussianAxis.map((x) => gaussian(x, fusedMean, fusedVar)),
+          mode: "lines",
+          name: "Posterior",
+          line: { color: "#5AD8A6", width: 4 }
+        }
+      ];
+
+      const layout = {
+        paper_bgcolor: "rgba(0,0,0,0)",
+        plot_bgcolor: "rgba(0,0,0,0)",
+        margin: { l: 50, r: 20, t: 30, b: 40 },
+        xaxis: { title: "Distance from wall (m)", range: [2, 6], gridcolor: "rgba(255,255,255,0.1)" },
+        yaxis: { title: "Probability density", gridcolor: "rgba(255,255,255,0.1)" },
+        legend: { orientation: "h", y: -0.2 },
+        font: { color: "#f5f5f5" }
+      };
+
+      Plotly.react(gaussianPlotElement, traces, layout, { responsive: true, displaylogo: false });
+    }
+
+    predictVarInput.addEventListener("input", renderGaussianPlot);
+    measureVarInput.addEventListener("input", renderGaussianPlot);
+
+    // ---------- 1D gain playground ----------
+    const gainPlotElement = document.getElementById("gainPlot");
+    const processNoiseInput = document.getElementById("processNoise");
+    const measurementNoiseInput = document.getElementById("measurementNoise");
+    const processNoiseLabel = document.getElementById("processNoiseLabel");
+    const measurementNoiseLabel = document.getElementById("measurementNoiseLabel");
+    const gainLabel = document.getElementById("gainLabel");
+
+    const trueTrajectory = (() => {
+      const acc = 0.02;
+      const vel0 = 0.6;
+      const pos0 = 0;
+      const steps = 30;
+      const data = [];
+      let pos = pos0;
+      let vel = vel0;
+      for (let i = 0; i < steps; i++) {
+        vel += acc;
+        pos += vel;
+        data.push(Number(pos.toFixed(3)));
+      }
+      return data;
+    })();
+
+    const measurementOffsets = [
+      0.32, -0.8, 0.1, 0.6, -0.45, 0.05, -0.62, 0.4, -0.28, 0.3,
+      0.15, -0.92, 0.05, 0.44, -0.38, 0.23, 0.11, -0.26, 0.74, -0.41,
+      0.55, -0.2, -0.05, 0.37, -0.49, 0.2, 0.63, -0.32, 0.24, -0.15
+    ];
+
+    const measurements = trueTrajectory.map((pos, i) => pos + measurementOffsets[i]);
+    const timeAxis = trueTrajectory.map((_, i) => i + 1);
+
+    /* --- 1D Kalman Filter Class (explicit predict/update) --- */
+    class KalmanFilter1D {
+      constructor(x0, p0, q, r) {
+        this.x = x0;  // state estimate
+        this.p = p0;  // estimate covariance
+        this.q = q;   // process noise variance
+        this.r = r;   // measurement noise variance
+      }
+      
+      predict() {
+        // Predict step: x̂⁻ = x̂, P⁻ = P + Q
+        this.p = this.p + this.q;
+      }
+      
+      update(z) {
+        // Update step: K = P⁻/(P⁻ + R), x̂ = x̂⁻ + K(z - x̂⁻), P = (1-K)P⁻
+        const k = this.p / (this.p + this.r);
+        this.x = this.x + k * (z - this.x);
+        this.p = (1 - k) * this.p;
+        return k;
+      }
+      
+      step(z) {
+        this.predict();
+        const k = this.update(z);
+        return { x: this.x, p: this.p, k };
+      }
+    }
+
+    function runKalman1D(q, r) {
+      const kf = new KalmanFilter1D(measurements[0], 1, q, r);
+      const estimates = [];
+      const gains = [];
+      
+      for (let i = 0; i < measurements.length; i++) {
+        const { x, k } = kf.step(measurements[i]);
+        estimates.push(Number(x.toFixed(3)));
+        gains.push(k);
+      }
+      
+      return { estimates, gains };
+    }
+
+    let gainPlotInitialized = false;
+    
+    function renderGainPlot(q, r) {
+      processNoiseLabel.textContent = Number(q).toFixed(2);
+      measurementNoiseLabel.textContent = Number(r).toFixed(2);
+      const { estimates, gains } = runKalman1D(q, r);
+      const latestGain = gains[gains.length - 1];
+      gainLabel.textContent = latestGain.toFixed(2);
+
+      const traces = [
+        {
+          x: timeAxis,
+          y: trueTrajectory,
+          mode: "lines",
+          name: "True position",
+          line: { color: "#5B8FF9", width: 3 }
+        },
+        {
+          x: timeAxis,
+          y: measurements,
+          mode: "markers",
+          name: "Measurements",
+          marker: { color: "#F6BD16", size: 8, opacity: 0.8 }
+        },
+        {
+          x: timeAxis,
+          y: estimates,
+          mode: "lines+markers",
+          name: "Kalman estimate",
+          line: { color: "#5AD8A6", width: 3 },
+          marker: { color: "#5AD8A6", size: 6 }
+        }
+      ];
+
+      if (!gainPlotInitialized) {
+        const layout = {
+          paper_bgcolor: "rgba(0,0,0,0)",
+          plot_bgcolor: "rgba(0,0,0,0)",
+          margin: { l: 50, r: 20, t: 30, b: 40 },
+          xaxis: { title: "Time step", gridcolor: "rgba(255,255,255,0.1)" },
+          yaxis: { title: "Position", gridcolor: "rgba(255,255,255,0.1)" },
+          legend: { orientation: "h", y: -0.2 },
+          font: { color: "#f5f5f5" }
+        };
+        Plotly.react(gainPlotElement, traces, layout, { responsive: true, displaylogo: false });
+        gainPlotInitialized = true;
+      } else {
+        Plotly.update(gainPlotElement, { x: traces.map(t => t.x), y: traces.map(t => t.y) }, {}, [0, 1, 2]);
+      }
+    }
+
+    function handleGainInput() {
+      const q = Number(processNoiseInput.value);
+      const r = Number(measurementNoiseInput.value);
+      renderGainPlot(q, r);
+    }
+
+    processNoiseInput.addEventListener("input", handleGainInput);
+    measurementNoiseInput.addEventListener("input", handleGainInput);
+
+    // ---------- Warehouse robot tracker ----------
+    const robotPlotElement = document.getElementById("robotPlot");
+    const robotProcessNoiseInput = document.getElementById("robotProcessNoise");
+    const robotMeasurementNoiseInput = document.getElementById("robotMeasurementNoise");
+    const robotProcessLabel = document.getElementById("robotProcessLabel");
+    const robotMeasurementLabel = document.getElementById("robotMeasurementLabel");
+    const robotMeasurementRmseLabel = document.getElementById("robotMeasurementRmse");
+    const robotFilterRmseLabel = document.getElementById("robotFilterRmse");
+
+    const robotTruePath = (() => {
+      const points = [];
+      let x = 2;
+      let y = 1;
+      let vx = 1.1;
+      let vy = 0.6;
+      for (let i = 0; i < 50; i++) {
+        vx += 0.02 * Math.sin(i / 6);
+        vy += 0.015 * Math.cos(i / 5);
+        x += vx;
+        y += vy;
+        points.push({ x, y });
+      }
+      return points;
+    })();
+
+    const robotNoise = robotTruePath.map((_, i) => ({
+      x: pseudoNoise(i, 1),
+      y: pseudoNoise(i, 2)
+    }));
+
+    function getRobotMeasurements(std) {
+      return robotTruePath.map((point, i) => ({
+        x: point.x + robotNoise[i].x * std,
+        y: point.y + robotNoise[i].y * std
+      }));
+    }
+
+    function runRobotKalman(measurements, processStd, measurementStd) {
+      const dt = 1;
+      const F = [
+        [1, dt, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, dt],
+        [0, 0, 0, 1]
+      ];
+      const G = [
+        [0.5 * dt * dt],
+        [dt],
+        [0.5 * dt * dt],
+        [dt]
+      ];
+      const q = processStd * processStd;
+      const Q = matMul(G, matMul([[q]], matTranspose(G)));
+      const H = [
+        [1, 0, 0, 0],
+        [0, 0, 1, 0]
+      ];
+      const R = [
+        [measurementStd * measurementStd, 0],
+        [0, measurementStd * measurementStd]
+      ];
+
+      let x = [measurements[0].x, 0, measurements[0].y, 0];
+      let P = identity(4, 4);
+      const estimates = [];
+
+      for (const meas of measurements) {
+        x = matVecMul(F, x);
+        P = matAdd(matMul(F, matMul(P, matTranspose(F))), Q);
+
+        const z = [meas.x, meas.y];
+        const Hx = matVecMul(H, x);
+        const y = vecSub(z, Hx);
+        const HP = matMul(H, P);
+        const S = matAdd(matMul(HP, matTranspose(H)), R);
+        const K = matMul(P, matMul(matTranspose(H), inv2x2(S)));
+        x = vecAdd(x, matVecMul(K, y));
+        const KH = matMul(K, H);
+        P = matMul(matSub(identity(4), KH), P);
+        estimates.push({ x: x[0], y: x[2] });
+      }
+
+      return estimates;
+    }
+
+    let robotPlotInitialized = false;
+    
+    function renderRobotPlot() {
+      const processStd = Number(robotProcessNoiseInput.value);
+      const measurementStd = Number(robotMeasurementNoiseInput.value);
+      robotProcessLabel.textContent = processStd.toFixed(2);
+      robotMeasurementLabel.textContent = measurementStd.toFixed(2);
+
+      const measurements = getRobotMeasurements(measurementStd);
+      const estimates = runRobotKalman(measurements, processStd, measurementStd);
+      const measRmse = rmse2D(robotTruePath, measurements);
+      const filterRmse = rmse2D(robotTruePath, estimates);
+      robotMeasurementRmseLabel.textContent = measRmse.toFixed(2);
+      robotFilterRmseLabel.textContent = filterRmse.toFixed(2);
+
+      const traces = [
+        {
+          x: robotTruePath.map((p) => p.x),
+          y: robotTruePath.map((p) => p.y),
+          mode: "lines",
+          name: "True path",
+          line: { color: "#5B8FF9", width: 3 }
+        },
+        {
+          x: measurements.map((p) => p.x),
+          y: measurements.map((p) => p.y),
+          mode: "markers",
+          name: "Measurements",
+          marker: { color: "#F6BD16", size: 6, opacity: 0.75 }
+        },
+        {
+          x: estimates.map((p) => p.x),
+          y: estimates.map((p) => p.y),
+          mode: "lines+markers",
+          name: "KF estimate",
+          line: { color: "#5AD8A6", width: 3 },
+          marker: { color: "#5AD8A6", size: 6 }
+        }
+      ];
+
+      if (!robotPlotInitialized) {
+        const layout = {
+          paper_bgcolor: "rgba(0,0,0,0)",
+          plot_bgcolor: "rgba(0,0,0,0)",
+          margin: { l: 40, r: 20, t: 30, b: 40 },
+          xaxis: { title: "x (m)", gridcolor: "rgba(255,255,255,0.1)" },
+          yaxis: {
+            title: "y (m)",
+            gridcolor: "rgba(255,255,255,0.1)",
+            scaleanchor: "x",
+            scaleratio: 1
+          },
+          legend: { orientation: "h", y: -0.2 },
+          font: { color: "#f5f5f5" }
+        };
+        Plotly.react(robotPlotElement, traces, layout, { responsive: true, displaylogo: false });
+        robotPlotInitialized = true;
+      } else {
+        Plotly.update(robotPlotElement, { x: traces.map(t => t.x), y: traces.map(t => t.y) }, {}, [0, 1, 2]);
+      }
+    }
+
+    robotProcessNoiseInput.addEventListener("input", renderRobotPlot);
+    robotMeasurementNoiseInput.addEventListener("input", renderRobotPlot);
+
+    // ---------- Model order designer ----------
+    const orderPlotElement = document.getElementById("orderPlot");
+    const modelOrderSelect = document.getElementById("modelOrderSelect");
+    const orderRmseLabel = document.getElementById("orderRmse");
+
+    const orderTruePositions = (() => {
+      const dt = 1;
+      const sequence = [];
+      let pos = 0;
+      let vel = 0.8;
+      let acc = 0.05;
+      for (let i = 0; i < 70; i++) {
+        acc = 0.05 * Math.sin(i / 8) + 0.02 * Math.cos(i / 11);
+        vel += acc;
+        pos += vel;
+        sequence.push(pos);
+      }
+      return sequence;
+    })();
+
+    const orderNoise = orderTruePositions.map((_, i) => pseudoNoise(i, 7));
+    const measurementStdOrder = 0.7;
+    const orderMeasurements = orderTruePositions.map((val, i) => val + orderNoise[i] * measurementStdOrder);
+    const orderTimeAxis = orderTruePositions.map((_, i) => i);
+
+    function runOrderKalman(order) {
+      const dt = 1;
+      let x = Array(order + 1).fill(0);
+      x[0] = orderMeasurements[0];
+      let P = identity(order + 1, 2);
+      let F, Q, H;
+      if (order === 0) {
+        F = [[1]];
+        Q = [[0.8 * 0.8]];
+        H = [[1]];
+      } else if (order === 1) {
+        F = [
+          [1, dt],
+          [0, 1]
+        ];
+        const q = 0.15;
+        Q = [
+          [0.25 * q, 0.5 * q],
+          [0.5 * q, q]
+        ];
+        H = [[1, 0]];
+      } else {
+        F = [
+          [1, dt, 0.5 * dt * dt],
+          [0, 1, dt],
+          [0, 0, 1]
+        ];
+        const q = 0.08;
+        Q = [
+          [0.25 * q, 0.5 * q, 0.5 * q],
+          [0.5 * q, q, q],
+          [0.5 * q, q, 1.5 * q]
+        ];
+        H = [[1, 0, 0]];
+      }
+      const R = [[measurementStdOrder * measurementStdOrder]];
+      const estimates = [];
+
+      for (const zScalar of orderMeasurements) {
+        x = matVecMul(F, x);
+        P = matAdd(matMul(F, matMul(P, matTranspose(F))), Q);
+
+        const z = [zScalar];
+        const Hx = matVecMul(H, x);
+        const y = vecSub(z, Hx);
+        const S = matAdd(matMul(H, matMul(P, matTranspose(H))), R)[0][0];
+        const K = matMul(P, matTranspose(H)).map(row => row.map(val => val / S));
+        x = vecAdd(x, K.map(row => row[0] * y[0]));
+        const KH = matMul(K, H);
+        P = matMul(matSub(identity(order + 1), KH), P);
+        estimates.push(x[0]);
+      }
+
+      return estimates;
+    }
+
+    let orderPlotInitialized = false;
+    
+    function renderOrderPlot() {
+      const order = Number(modelOrderSelect.value);
+      const estimates = runOrderKalman(order);
+      const positionRmse = rmse(orderTruePositions, estimates);
+      orderRmseLabel.textContent = positionRmse.toFixed(2);
+
+      const traces = [
+        {
+          x: orderTimeAxis,
+          y: orderTruePositions,
+          mode: "lines",
+          name: "True position",
+          line: { color: "#5B8FF9", width: 3 }
+        },
+        {
+          x: orderTimeAxis,
+          y: orderMeasurements,
+          mode: "markers",
+          name: "Measurements",
+          marker: { color: "#F6BD16", size: 6, opacity: 0.7 }
+        },
+        {
+          x: orderTimeAxis,
+          y: estimates,
+          mode: "lines",
+          name: `${["Zero", "First", "Second"][order]}-order KF`,
+          line: { color: "#5AD8A6", width: 3 }
+        }
+      ];
+
+      if (!orderPlotInitialized) {
+        const layout = {
+          paper_bgcolor: "rgba(0,0,0,0)",
+          plot_bgcolor: "rgba(0,0,0,0)",
+          margin: { l: 50, r: 20, t: 30, b: 40 },
+          xaxis: { title: "Time step", gridcolor: "rgba(255,255,255,0.1)" },
+          yaxis: { title: "Position (m)", gridcolor: "rgba(255,255,255,0.1)" },
+          legend: { orientation: "h", y: -0.2 },
+          font: { color: "#f5f5f5" }
+        };
+        Plotly.react(orderPlotElement, traces, layout, { responsive: true, displaylogo: false });
+        orderPlotInitialized = true;
+      } else {
+        Plotly.update(orderPlotElement, { x: traces.map(t => t.x), y: traces.map(t => t.y) }, {}, [0, 1, 2]);
+      }
+    }
+
+    modelOrderSelect.addEventListener("change", renderOrderPlot);
+
+    // ---------- Radar EKF ----------
+    const radarPlotStatesElement = document.getElementById("radarPlotStates");
+    const radarPlotMeasurementsElement = document.getElementById("radarPlotMeasurements");
+    const radarProcessNoiseInput = document.getElementById("radarProcessNoise");
+    const radarMeasurementNoiseInput = document.getElementById("radarMeasurementNoise");
+    const radarProcessLabel = document.getElementById("radarProcessLabel");
+    const radarMeasurementLabel = document.getElementById("radarMeasurementLabel");
+    const radarHorizontalLabel = document.getElementById("radarHorizontalLabel");
+
+    const radarScenario = (() => {
+      const dt = 1;
+      const alt = 1500;
+      const radius = 800;
+      const angularVelocity = 0.015;
+      const trackLen = 200;
+      const states = [];
+      
+      // Generate circular trajectory
+      for (let i = 0; i < trackLen; i++) {
+        const angle = angularVelocity * i * dt;
+        const x = radius * Math.cos(angle);
+        const y = radius * Math.sin(angle);
+        const vx = -radius * angularVelocity * Math.sin(angle);  // dx/dt
+        const vy = radius * angularVelocity * Math.cos(angle);   // dy/dt
+        const range = Math.sqrt(x * x + alt * alt);
+        
+        states.push({ x, y, vx, vy, alt, range });
+      }
+      
+      return { states, dt, radius, angularVelocity };
+    })();
+    const radarTimeAxis = radarScenario.states.map((_, i) => i);
+    const radarNoise = radarScenario.states.map((_, i) => pseudoNoise(i, 11));
+
+    function getRadarMeasurements(std) {
+      return radarScenario.states.map((state, i) => state.range + radarNoise[i] * std);
+    }
+
+    function radarJacobian(state) {
+      const denom = Math.sqrt(state[0] * state[0] + state[2] * state[2]) || 1;
+      return [[state[0] / denom, 0, state[2] / denom]];
+    }
+
+    function runRadarEkf(processStd, measurementStd, measurements) {
+      const dt = radarScenario.dt;
+      const q = processStd * processStd;
+      const Q = [
+        [0.25 * dt * dt * dt * dt * q, 0.5 * dt * dt * dt * q, 0],
+        [0.5 * dt * dt * dt * q, dt * dt * q, 0],
+        [0, 0, 0.5 * q]  // Small process noise for altitude
+      ];
+      const R = [[measurementStd * measurementStd]];
+
+      // Use first measurement to initialize altitude better
+      const firstMeasurement = measurements[0];
+      const initialX = radarScenario.radius;
+      const initialAlt = Math.sqrt(Math.max(0, firstMeasurement * firstMeasurement - initialX * initialX));
+      
+      let x = [initialX, 0, initialAlt];  // [horizontal_dist, velocity, altitude]
+      // Higher initial uncertainty to allow filter to converge
+      let P = [
+        [1000, 0, 0],
+        [0, 200, 0],
+        [0, 0, 300]
+      ];
+
+      const horizontalEstimates = [];
+      const velocityEstimates = [];
+      const altitudeEstimates = [];
+      const rangeEstimates = [];
+
+      const F = [
+        [1, dt, 0],
+        [0, 1, 0],
+        [0, 0, 1]
+      ];
+      const FT = matTranspose(F);
+
+      for (let i = 0; i < measurements.length; i++) {
+        x = matVecMul(F, x);
+        P = matAdd(matMul(F, matMul(P, FT)), Q);
+
+        const H = radarJacobian(x);
+        const hxRange = Math.sqrt(x[0] * x[0] + x[2] * x[2]);
+        const z = [measurements[i]];
+        const y = [z[0] - hxRange];
+        const HP = matMul(H, P);
+        const S = matAdd(matMul(HP, matTranspose(H)), R);
+        const SVal = S[0][0];
+        const KRaw = matMul(P, matTranspose(H));
+        const K = KRaw.map((row) => row.map((val) => val / SVal));
+        x = vecAdd(x, K.map((row) => row[0] * y[0]));
+        const KH = matMul(K, H);
+        P = matMul(matSub(identity(3), KH), P);
+
+        horizontalEstimates.push(x[0]);
+        velocityEstimates.push(x[1]);
+        altitudeEstimates.push(x[2]);
+        rangeEstimates.push(Math.sqrt(x[0] * x[0] + x[2] * x[2]));
+      }
+
+      return { horizontalEstimates, velocityEstimates, altitudeEstimates, rangeEstimates };
+    }
+
+    let radarPlotStatesInitialized = false;
+    let radarPlotMeasurementsInitialized = false;
+    
+    function renderRadarPlot() {
+      if (!radarPlotStatesElement || !radarPlotMeasurementsElement) return;
+      const processStd = Number(radarProcessNoiseInput.value);
+      const measurementStd = Number(radarMeasurementNoiseInput.value);
+      radarProcessLabel.textContent = processStd.toFixed(2);
+      radarMeasurementLabel.textContent = measurementStd.toFixed(1);
+
+      const measurements = getRadarMeasurements(measurementStd);
+      const { horizontalEstimates, rangeEstimates, velocityEstimates, altitudeEstimates } = runRadarEkf(processStd, measurementStd, measurements);
+      
+      // Calculate errors
+      const posErrors = radarScenario.states.map((s, i) => Math.abs(horizontalEstimates[i] - s.x));
+      const velErrors = radarScenario.states.map((s, i) => Math.abs(velocityEstimates[i] - s.vx));
+      const altErrors = radarScenario.states.map((s, i) => Math.abs(altitudeEstimates[i] - s.alt));
+      
+      radarHorizontalLabel.textContent = `Pos: ${posErrors[posErrors.length - 1].toFixed(1)}m, Vel: ${velErrors[velErrors.length - 1].toFixed(1)}m/s, Alt: ${altErrors[altErrors.length - 1].toFixed(1)}m`;
+
+      const traces = [
+        // X Position
+        {
+          x: radarTimeAxis,
+          y: radarScenario.states.map((s) => s.x),
+          mode: "lines",
+          name: "True X",
+          line: { color: "#5AD8A6", width: 2 },
+          xaxis: "x",
+          yaxis: "y",
+          showlegend: false
+        },
+        {
+          x: radarTimeAxis,
+          y: horizontalEstimates,
+          mode: "lines",
+          name: "Est X",
+          line: { color: "#3b82f6", width: 2, dash: "dash" },
+          xaxis: "x",
+          yaxis: "y",
+          showlegend: false
+        },
+        // X Velocity
+        {
+          x: radarTimeAxis,
+          y: radarScenario.states.map((s) => s.vx),
+          mode: "lines",
+          name: "True Vx",
+          line: { color: "#5AD8A6", width: 2 },
+          xaxis: "x2",
+          yaxis: "y2",
+          showlegend: false
+        },
+        {
+          x: radarTimeAxis,
+          y: velocityEstimates,
+          mode: "lines",
+          name: "Est Vx",
+          line: { color: "#3b82f6", width: 2, dash: "dash" },
+          xaxis: "x2",
+          yaxis: "y2",
+          showlegend: false
+        },
+        // Altitude
+        {
+          x: radarTimeAxis,
+          y: radarScenario.states.map((s) => s.alt),
+          mode: "lines",
+          name: "True Alt",
+          line: { color: "#5AD8A6", width: 2 },
+          xaxis: "x3",
+          yaxis: "y3",
+          showlegend: false
+        },
+        {
+          x: radarTimeAxis,
+          y: altitudeEstimates,
+          mode: "lines",
+          name: "Est Alt",
+          line: { color: "#3b82f6", width: 2, dash: "dash" },
+          xaxis: "x3",
+          yaxis: "y3",
+          showlegend: false
+        },
+        // Range
+        {
+          x: radarTimeAxis,
+          y: radarScenario.states.map((s) => s.range),
+          mode: "lines",
+          name: "True Range",
+          line: { color: "#5AD8A6", width: 2 },
+          xaxis: "x5",
+          yaxis: "y5",
+          showlegend: false
+        },
+        {
+          x: radarTimeAxis,
+          y: rangeEstimates,
+          mode: "lines",
+          name: "Est Range",
+          line: { color: "#3b82f6", width: 2, dash: "dash" },
+          xaxis: "x5",
+          yaxis: "y5",
+          showlegend: false
+        },
+        {
+          x: radarTimeAxis.filter((_, i) => i % 5 === 0),
+          y: measurements.filter((_, i) => i % 5 === 0),
+          mode: "markers",
+          name: "Measurements",
+          marker: { color: "#ef4444", size: 5, opacity: 0.6 },
+          xaxis: "x5",
+          yaxis: "y5",
+          showlegend: false
+        },
+        // Errors (log scale)
+        {
+          x: radarTimeAxis,
+          y: posErrors,
+          mode: "lines",
+          name: "X Pos Error",
+          line: { color: "#ef4444", width: 2 },
+          xaxis: "x6",
+          yaxis: "y6",
+          showlegend: false
+        },
+        {
+          x: radarTimeAxis,
+          y: velErrors,
+          mode: "lines",
+          name: "X Vel Error",
+          line: { color: "#3b82f6", width: 2 },
+          xaxis: "x6",
+          yaxis: "y6",
+          showlegend: false
+        },
+        {
+          x: radarTimeAxis,
+          y: altErrors.map(e => e / 10),
+          mode: "lines",
+          name: "Alt Error (/10)",
+          line: { color: "#a855f7", width: 2 },
+          xaxis: "x6",
+          yaxis: "y6",
+          showlegend: false
+        }
+      ];
+
+      // First plot: States (x position, x velocity, altitude) - traces 0-5
+      const statesTraces = traces.slice(0, 6);
+      
+      if (!radarPlotStatesInitialized) {
+        const layoutStates = {
+          paper_bgcolor: "rgba(0,0,0,0)",
+          plot_bgcolor: "rgba(0,0,0,0)",
+          margin: { l: 60, r: 40, t: 20, b: 50 },
+          
+          // Row 1: X Position
+          xaxis: { 
+            domain: [0, 1], 
+            anchor: "y",
+            title: "Time (s)", 
+            gridcolor: "rgba(255,255,255,0.1)" 
+          },
+          yaxis: { 
+            domain: [0.68, 0.98], 
+            anchor: "x",
+            title: "X Position (m)", 
+            gridcolor: "rgba(255,255,255,0.1)" 
+          },
+          
+          // Row 2: X Velocity
+          xaxis2: { 
+            domain: [0, 1], 
+            anchor: "y2",
+            title: "Time (s)", 
+            gridcolor: "rgba(255,255,255,0.1)" 
+          },
+          yaxis2: { 
+            domain: [0.35, 0.63], 
+            anchor: "x2",
+            title: "X Velocity (m/s)", 
+            gridcolor: "rgba(255,255,255,0.1)" 
+          },
+          
+          // Row 3: Altitude
+          xaxis3: { 
+            domain: [0, 1], 
+            anchor: "y3",
+            title: "Time (s)", 
+            gridcolor: "rgba(255,255,255,0.1)" 
+          },
+          yaxis3: { 
+            domain: [0.02, 0.30], 
+            anchor: "x3",
+            title: "Altitude (m)", 
+            gridcolor: "rgba(255,255,255,0.1)" 
+          },
+          
+          legend: { orientation: "h", y: 1.02, x: 0, xanchor: "left" },
+          font: { color: "#f5f5f5" },
+          height: 700
+        };
+        Plotly.react(radarPlotStatesElement, statesTraces, layoutStates, { responsive: true, displaylogo: false });
+        radarPlotStatesInitialized = true;
+      } else {
+        Plotly.update(radarPlotStatesElement, { x: statesTraces.map(t => t.x), y: statesTraces.map(t => t.y) }, {}, [0, 1, 2, 3, 4, 5]);
+      }
+
+      // Second plot: Measurements (range and errors) - traces 6-11
+      const measurementsTraces = traces.slice(6).map((trace, idx) => {
+        // Remap axis references for the new plot
+        const newTrace = {...trace};
+        if (trace.xaxis === "x5") newTrace.xaxis = "x";
+        if (trace.yaxis === "y5") newTrace.yaxis = "y";
+        if (trace.xaxis === "x6") newTrace.xaxis = "x2";
+        if (trace.yaxis === "y6") newTrace.yaxis = "y2";
+        return newTrace;
+      });
+      
+      if (!radarPlotMeasurementsInitialized) {
+        const layoutMeasurements = {
+          paper_bgcolor: "rgba(0,0,0,0)",
+          plot_bgcolor: "rgba(0,0,0,0)",
+          margin: { l: 60, r: 40, t: 20, b: 50 },
+          
+          // Row 1: Range measurements
+          xaxis: { 
+            domain: [0, 1], 
+            anchor: "y",
+            title: "Time (s)", 
+            gridcolor: "rgba(255,255,255,0.1)" 
+          },
+          yaxis: { 
+            domain: [0.52, 0.98], 
+            anchor: "x",
+            title: "Range (m)", 
+            gridcolor: "rgba(255,255,255,0.1)" 
+          },
+          
+          // Row 2: Errors (log scale)
+          xaxis2: { 
+            domain: [0, 1], 
+            anchor: "y2",
+            title: "Time (s)", 
+            gridcolor: "rgba(255,255,255,0.1)" 
+          },
+          yaxis2: { 
+            domain: [0.02, 0.46], 
+            anchor: "x2",
+            title: "Error (m)", 
+            type: "log", 
+            gridcolor: "rgba(255,255,255,0.1)" 
+          },
+          
+          legend: { orientation: "h", y: 1.02, x: 0, xanchor: "left" },
+          font: { color: "#f5f5f5" },
+          height: 700
+        };
+        Plotly.react(radarPlotMeasurementsElement, measurementsTraces, layoutMeasurements, { responsive: true, displaylogo: false });
+        radarPlotMeasurementsInitialized = true;
+      } else {
+        Plotly.update(radarPlotMeasurementsElement, { x: measurementsTraces.map(t => t.x), y: measurementsTraces.map(t => t.y) }, {}, [0, 1, 2, 3, 4, 5]);
+      }
+    }
+
+    radarProcessNoiseInput?.addEventListener("input", renderRadarPlot);
+    radarMeasurementNoiseInput?.addEventListener("input", renderRadarPlot);
+
+    // ---------- Nonlinear robot EKF ----------
+    const robotEkfPlotElement = document.getElementById("robotEkfPlot");
+    const robotEkfProcessNoiseInput = document.getElementById("robotEkfProcessNoise");
+    const robotEkfMeasurementNoiseInput = document.getElementById("robotEkfMeasurementNoise");
+    const robotEkfProcessLabel = document.getElementById("robotEkfProcessLabel");
+    const robotEkfMeasurementLabel = document.getElementById("robotEkfMeasurementLabel");
+    const robotEkfRmseLabel = document.getElementById("robotEkfRmse");
+
+    const robotEkfWheelbase = 2.5;
+    const robotEkfDt = 0.5;
+    function bicyclePropagate(state, control) {
+      const newHeading = state.heading + (control.v / robotEkfWheelbase) * Math.tan(control.steer) * robotEkfDt;
+      const newX = state.x + control.v * Math.cos(state.heading) * robotEkfDt;
+      const newY = state.y + control.v * Math.sin(state.heading) * robotEkfDt;
+      return { x: newX, y: newY, heading: newHeading };
+    }
+
+    const robotEkfScenario = (() => {
+      const states = [];
+      const controls = [];
+      let state = { x: 4, y: -5, heading: 0.2 };
+      for (let i = 0; i < 60; i++) {
+        const control = {
+          v: 1.8 + 0.3 * Math.sin(i / 4),
+          steer: 0.25 * Math.cos(i / 7)
+        };
+        controls.push(control);
+        state = bicyclePropagate(state, control);
+        states.push({ ...state });
+      }
+      return { states, controls };
+    })();
+    const robotEkfRangeNoise = robotEkfScenario.states.map((_, i) => pseudoNoise(i, 19));
+    const robotEkfBearingNoise = robotEkfScenario.states.map((_, i) => pseudoNoise(i, 23));
+
+    function getRobotEkfMeasurements(rangeStd) {
+      const bearingStd = rangeStd / 50;
+      return robotEkfScenario.states.map((state, i) => ({
+        range: Math.sqrt(state.x * state.x + state.y * state.y) + robotEkfRangeNoise[i] * rangeStd,
+        bearing: wrapAngle(Math.atan2(state.y, state.x) + robotEkfBearingNoise[i] * bearingStd)
+      }));
+    }
+
+    function runRobotEkf(procStd, rangeStd, measurements) {
+      const bearingStd = rangeStd / 50;
+      const R = [
+        [rangeStd * rangeStd, 0],
+        [0, bearingStd * bearingStd]
+      ];
+      const Q = [
+        [procStd * procStd * robotEkfDt, 0, 0],
+        [0, procStd * procStd * robotEkfDt, 0],
+        [0, 0, procStd * procStd * robotEkfDt]
+      ];
+
+      const firstMeas = measurements[0];
+      let x = [
+        firstMeas.range * Math.cos(firstMeas.bearing),
+        firstMeas.range * Math.sin(firstMeas.bearing),
+        0.0
+      ];
+      let P = identity(3, 5);
+      const estimates = [];
+
+      for (let i = 0; i < measurements.length; i++) {
+        const control = robotEkfScenario.controls[i];
+        const theta = x[2];
+        const xPred = x[0] + control.v * Math.cos(theta) * robotEkfDt;
+        const yPred = x[1] + control.v * Math.sin(theta) * robotEkfDt;
+        const headingPred = theta + (control.v / robotEkfWheelbase) * Math.tan(control.steer) * robotEkfDt;
+        x = [xPred, yPred, headingPred];
+
+        const F = [
+          [1, 0, -control.v * Math.sin(theta) * robotEkfDt],
+          [0, 1, control.v * Math.cos(theta) * robotEkfDt],
+          [0, 0, 1]
+        ];
+        P = matAdd(matMul(F, matMul(P, matTranspose(F))), Q);
+
+        const range = Math.sqrt(x[0] * x[0] + x[1] * x[1]) || 1e-6;
+        const hx = [range, Math.atan2(x[1], x[0])];
+        const H = [
+          [x[0] / range, x[1] / range, 0],
+          [-x[1] / (range * range), x[0] / (range * range), 0]
+        ];
+        const z = [measurements[i].range, measurements[i].bearing];
+        const yVec = [z[0] - hx[0], wrapAngle(z[1] - hx[1])];
+        const HP = matMul(H, P);
+        const S = matAdd(matMul(HP, matTranspose(H)), R);
+        const K = matMul(P, matMul(matTranspose(H), inv2x2(S)));
+        x = vecAdd(x, matVecMul(K, yVec));
+        const KH = matMul(K, H);
+        P = matMul(matSub(identity(3), KH), P);
+
+        estimates.push({ x: x[0], y: x[1] });
+      }
+
+      return estimates;
+    }
+
+    let robotEkfPlotInitialized = false;
+    
+    function renderRobotEkfPlot() {
+      if (!robotEkfPlotElement) return;
+      const procStd = Number(robotEkfProcessNoiseInput.value);
+      const rangeStd = Number(robotEkfMeasurementNoiseInput.value);
+      const bearingStd = rangeStd / 50;
+      robotEkfProcessLabel.textContent = procStd.toFixed(2);
+      robotEkfMeasurementLabel.textContent = `${rangeStd.toFixed(0)} / ${bearingStd.toFixed(2)}`;
+
+      const measurements = getRobotEkfMeasurements(rangeStd);
+      const measurementPoints = measurements.map((m) => ({
+        x: m.range * Math.cos(m.bearing),
+        y: m.range * Math.sin(m.bearing)
+      }));
+      const estimates = runRobotEkf(procStd, rangeStd, measurements);
+      const rmseVal = rmse2D(robotEkfScenario.states, estimates);
+      robotEkfRmseLabel.textContent = rmseVal.toFixed(2);
+
+      const traces = [
+        {
+          x: robotEkfScenario.states.map((p) => p.x),
+          y: robotEkfScenario.states.map((p) => p.y),
+          mode: "lines",
+          name: "True path (nonlinear)",
+          line: { color: "#5B8FF9", width: 3 }
+        },
+        {
+          x: measurementPoints.map((p) => p.x),
+          y: measurementPoints.map((p) => p.y),
+          mode: "markers",
+          name: "Radar measurements",
+          marker: { color: "#F6BD16", size: 6, opacity: 0.7 }
+        },
+        {
+          x: estimates.map((p) => p.x),
+          y: estimates.map((p) => p.y),
+          mode: "lines+markers",
+          name: "EKF estimate",
+          line: { color: "#5AD8A6", width: 3 },
+          marker: { color: "#5AD8A6", size: 5 }
+        }
+      ];
+
+      if (!robotEkfPlotInitialized) {
+        const layout = {
+          paper_bgcolor: "rgba(0,0,0,0)",
+          plot_bgcolor: "rgba(0,0,0,0)",
+          margin: { l: 40, r: 20, t: 30, b: 40 },
+          xaxis: { title: "x (m)", gridcolor: "rgba(255,255,255,0.1)" },
+          yaxis: {
+            title: "y (m)",
+            gridcolor: "rgba(255,255,255,0.1)",
+            scaleanchor: "x",
+            scaleratio: 1
+          },
+          legend: { orientation: "h", y: -0.2 },
+          font: { color: "#f5f5f5" }
+        };
+        Plotly.react(robotEkfPlotElement, traces, layout, { responsive: true, displaylogo: false });
+        robotEkfPlotInitialized = true;
+      } else {
+        Plotly.update(robotEkfPlotElement, { x: traces.map(t => t.x), y: traces.map(t => t.y) }, {}, [0, 1, 2]);
+      }
+    }
+
+    robotEkfProcessNoiseInput?.addEventListener("input", renderRobotEkfPlot);
+    robotEkfMeasurementNoiseInput?.addEventListener("input", renderRobotEkfPlot);
+
+    // ---------- Boot sequence ----------
+    renderLinearizationPlot();
+    renderGaussianPlot();
+    renderGainPlot(Number(processNoiseInput.value), Number(measurementNoiseInput.value));
+    renderRobotPlot();
+    renderOrderPlot();
+    renderRadarPlot();
+    renderRobotEkfPlot();
+
+    // ---------- Navigation ----------
+    const navLinks = document.querySelectorAll('.nav-link');
+    const mainContent = document.querySelector('main');
+    
+    // Update active nav link on scroll
+    const observerOptions = {
+      root: mainContent,
+      rootMargin: '-50% 0px -50% 0px',
+      threshold: 0
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.getAttribute('id');
+          navLinks.forEach(link => {
+            if (link.getAttribute('href') === `#${id}`) {
+              navLinks.forEach(l => l.classList.remove('active'));
+              link.classList.add('active');
+            }
+          });
+        }
+      });
+    }, observerOptions);
+
+    // Observe all slides
+    document.querySelectorAll('.slide').forEach(slide => {
+      observer.observe(slide);
+    });
+
+    // Set initial active state
+    if (window.location.hash) {
+      const link = document.querySelector(`a[href="${window.location.hash}"]`);
+      if (link) {
+        navLinks.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+      }
+    } else {
+      navLinks[0]?.classList.add('active');
+    }
+  </script>
+</body>
+</html>

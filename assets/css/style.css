@@ -25,6 +25,15 @@ html, body {
 }
 .container { max-width: 1100px; margin: 0 auto; padding: 2rem; }
 
+/* Link styling - prevent purple visited state */
+a { color: var(--accent); text-decoration: none; }
+a:visited { color: var(--accent); }
+a:hover { text-decoration: underline; }
+
+/* Button text should remain dark */
+.btn, .btn:visited { color: #07203a; text-decoration: none; }
+.btn:hover { text-decoration: none; }
+
 /* Hero Section */
 .hero {
   text-align: center;
@@ -153,6 +162,86 @@ html, body {
 /* Embedded site frame fade */
 .embed-frame iframe { opacity: 0; transition: opacity var(--anim-duration) ease; }
 .embed-frame iframe.loaded { opacity: 1; }
+
+/* Course Grid Styling */
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.course-card {
+  background: linear-gradient(135deg, #1a2332 0%, #0f1724 100%);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.course-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.4);
+}
+
+.course-card h3 {
+  margin-top: 0;
+  color: var(--accent);
+  font-size: 1.25rem;
+}
+
+.course-card p {
+  margin: 0.5rem 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.course-card ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.course-card ul li {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.course-card ul li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.course-card a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.course-card a:hover {
+  color: #61a8ff;
+  text-decoration: underline;
+}
+
+.course-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.topic-tag {
+  background: rgba(79, 157, 255, 0.15);
+  color: var(--accent);
+  padding: 0.25rem 0.75rem;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  border: 1px solid rgba(79, 157, 255, 0.3);
+}
 
 /* Responsive */
 @media (max-width: 980px) {

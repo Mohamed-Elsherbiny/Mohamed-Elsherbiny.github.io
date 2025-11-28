@@ -3,28 +3,60 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Blog — Notebooks</title>
-  <link rel="stylesheet" href="/profile-site/assets/css/style.css">
+  <title>Educational Content & Notebooks</title>
   <style>
-    .embed-wrap{max-width:1100px;margin:2rem auto;padding:1rem}
-    .embed-header{display:flex;align-items:center;justify-content:space-between}
-    .embed-frame{width:100%;height:75vh;border:1px solid rgba(0,0,0,0.08);border-radius:12px;background:#fff;overflow:auto}
-    .back-link{color:#0b6ef6;text-decoration:none}
+    body{font-family:system-ui,Arial;max-width:900px;margin:2rem auto;padding:1rem;color:#e6eef8;background:#0f1724;line-height:1.6}
+    a{color:#4f9dff;text-decoration:none}
+    a:hover{text-decoration:underline}
+    h1{font-size:2rem;margin-bottom:0.5rem}
+    .course-section{background:rgba(255,255,255,0.05);padding:1.5rem;border-radius:12px;margin:1.5rem 0;border-left:4px solid #4f9dff}
+    .course-section h2{margin-top:0;color:#e6eef8}
+    .course-list{list-style:none;padding-left:0}
+    .course-list li{margin:0.75rem 0;padding-left:1.5rem;position:relative}
+    .course-list li::before{content:"📘";position:absolute;left:0}
+    .course-list em{color:#9aa4b2;font-size:0.9rem}
+    hr{border:none;height:1px;background:rgba(255,255,255,0.1);margin:2rem 0}
+    footer{text-align:center;color:#9aa4b2;font-size:0.9rem;margin-top:2rem}
   </style>
 </head>
 <body>
-  <nav class="topnav">
-    <div class="container nav-container">
-      <a class="brand" href="/profile-site/">M. Elsherbiny</a>
-      <a class="link back-link" href="../index.html">← Back to home</a>
-    </div>
-  </nav>
+<h1>Educational Content & Notebooks</h1>
+<p><a href="../index.html">← Back to Main Site</a></p>
 
-  <main class="embed-wrap">
-    <div class="embed-header" style="background-image:url('../assets/images/autonums vehicle.png');background-size:cover;padding:1rem;border-radius:8px;color:#fff;">
-      <h1>Notebook Blog</h1>
-      <p class="muted">Converted notebooks appear below</p>
-    </div>
+<div class="course-section">
+  <h2>🎓 Kalman Filter Course</h2>
+  <p>Interactive visualizations and comprehensive explanations of Kalman Filtering for state estimation and sensor fusion.</p>
+  <ul class="course-list">
+    <li>
+      <a href="kalman_filter.html"><strong>Interactive Theory Slides</strong></a><br>
+      <em>Complete derivation with live plots: Gaussian fusion, 1D/2D trackers, EKF examples</em>
+    </li>
+    <li>
+      <a href="kalman_slides.html"><strong>Visual Car Tracking Demo</strong></a><br>
+      <em>Real-time 1D simulation with manual/auto modes and time-series plotting</em>
+    </li>
+  </ul>
+</div>
+
+<div class="course-section">
+  <h2>🚁 Drone Control Examples</h2>
+  <p>Educational Webots simulations demonstrating PID control for UAVs.</p>
+  <ul class="course-list">
+    <li><a href="site/altitude_controller.html">Altitude-Only Drone Controller</a> <em>(Beginner)</em></li>
+    <li><a href="site/attitude_controller.html">Altitude + Attitude Controller</a> <em>(Advanced)</em></li>
+  </ul>
+</div>
+
+<div class="course-section">
+  <h2>📊 Signal Processing Notebooks</h2>
+  <ul class="course-list">
+    <li><a href="site/Aliasing_Demonstration.html">Aliasing Demonstration</a></li>
+    <li><a href="site/live_phyphox.html">Live Phyphox Data Analysis</a></li>
+  </ul>
+</div>
+
+<hr>
+<footer>© 2025 Mohamed Elsherbiny</footer>
 
     <div class="embed-frame" id="embed-frame">
       <div id="loader" style="padding:2rem;text-align:center;color:#333">Loading notebooks…</div>
